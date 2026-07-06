@@ -1,0 +1,10 @@
+Применённые фиксы vs оригинальной выгрузки:
+1. composer.json - убраны dadata/dadata-api, maatwebsite/excel
+   DadataService работает через Laravel Http / Guzzle
+2. database/migrations/2024_01_01_000001_create_users_and_permission_tables.php
+   - убрана undefined $teams в roles migration
+   - убран PermissionRegistrar::forgetCachedPermissions() - падал т.к. CACHE_STORE=database, а таблицы cache нет
+3. config/cache.php, config/session.php, config/logging.php, config/permission.php, config/hashing.php, config/mail.php, config/filesystems.php, config/services.php - добавлены (из Laravel 11)
+4. .env.example - CACHE_STORE=file
+5. public/.htaccess добавлен
+6. public/build - собранный Vite (Tailwind). В layout по умолчанию CDN, @vite закомментирован
