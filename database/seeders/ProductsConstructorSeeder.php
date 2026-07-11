@@ -52,7 +52,7 @@ class ProductsConstructorSeeder extends Seeder
   sum_movable * 0.752 +
   sum_go * 0.7 +
   (electricity ? max(sum_construct, sum_finish, sum_movable) : 0) * 0.03
-) / 100 * k_rent +
+) / 100 * (k_rent ? 1.2 : 1) +
   exp_keys * 0.42 / 100 +
   exp_rent * 0.56 / 100 +
   exp_transport * 0.28 / 100 +
