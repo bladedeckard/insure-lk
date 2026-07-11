@@ -220,6 +220,13 @@
                         </div>
                     @endif
 
+                    @if(!empty($calculation['debug']))
+                        <div class="border-t pt-4 mt-4">
+                            <h4 class="text-xs font-semibold text-gray-500 mb-2">🔧 ОТЛАДКА</h4>
+                            <pre class="text-xs text-gray-600 bg-gray-50 rounded p-3 overflow-x-auto max-h-64">{{ json_encode($calculation['debug'], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) }}</pre>
+                        </div>
+                    @endif
+
                     @if(!empty($calculation['errors']))
                         <div class="mt-4 bg-red-50 border border-red-200 rounded p-3">
                             <h4 class="text-xs font-semibold text-red-700 mb-2">ОШИБКИ</h4>

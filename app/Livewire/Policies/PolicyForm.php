@@ -112,6 +112,12 @@ class PolicyForm extends Component
                 $this->calculation = [
                     'premium' => $premium,
                     'breakdown' => $values,
+                    'debug' => [
+                        'method' => 'FormulaCalculator',
+                        'formula' => $product->formula_expression,
+                        'values' => $values,
+                        'has_expression_language' => class_exists(\Symfony\Component\ExpressionLanguage\ExpressionLanguage::class),
+                    ],
                 ];
                 return;
             }
@@ -125,7 +131,15 @@ class PolicyForm extends Component
             $this->premium = 0;
             $this->calculation = [
                 'premium' => 0,
-                'errors' => ['formula' => 'Ошибка расчёта: ' . $e->getMessage()],
+                'errors' => ['formula' => $e->getMessage()],
+                'debug' => [
+                    'exception' => get_class($e),
+                    'message' => $e->getMessage(),
+                    'file' => $e->getFile() . ':' . $e->getLine(),
+                    'formula' => $product->formula_expression,
+                    'values' => $values,
+                    'calculator_class' => $product->calculator_class,
+                ],
             ];
         }
     }
