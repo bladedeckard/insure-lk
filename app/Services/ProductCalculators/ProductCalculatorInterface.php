@@ -2,11 +2,21 @@
 
 namespace App\Services\ProductCalculators;
 
-use App\Models\Product;
-
 interface ProductCalculatorInterface
 {
-    public function __construct(Product $product);
-    public function calculate(array $input): array; // returns ['premium'=>float, 'breakdown'=>[], 'errors'=>[]]
-    public function validate(array $input): array; // field => message
+    /**
+     * Рассчитать страховую премию и дополнительные параметры.
+     *
+     * @param array $data Данные из формы полиса
+     * @return array ['premium' => float, ...]
+     */
+    public function calculate(array $data): array;
+
+    /**
+     * Валидация данных перед расчётом.
+     *
+     * @param array $data
+     * @return array Массив ошибок (пустой если всё ОК)
+     */
+    public function validate(array $data): array;
 }
