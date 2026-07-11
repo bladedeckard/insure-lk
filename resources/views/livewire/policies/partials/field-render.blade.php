@@ -25,21 +25,19 @@
 
         @case('number')
             <input type="number"
-                wire:model.defer="data.{{ $field->code }}"
-                wire:change="calculate"
+                wire:model.live.debounce.500ms="data.{{ $field->code }}"
                 class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
                 placeholder="{{ $field->hint ?? '0' }}">
             @break
 
         @case('date')
             <input type="date"
-                wire:model.defer="data.{{ $field->code }}"
+                wire:model.live="data.{{ $field->code }}"
                 class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500">
             @break
 
         @case('select')
-            <select wire:model.defer="data.{{ $field->code }}"
-                wire:change="calculate"
+            <select wire:model.live="data.{{ $field->code }}"
                 class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500">
                 <option value="">— выберите —</option>
                 @foreach($field->options ?? [] as $opt)
@@ -51,8 +49,7 @@
         @case('checkbox')
             <label class="flex items-center gap-2 cursor-pointer mt-1">
                 <input type="checkbox"
-                    wire:model.defer="data.{{ $field->code }}"
-                    wire:change="calculate"
+                    wire:model.live="data.{{ $field->code }}"
                     class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
                 <span class="text-sm text-gray-700">Да</span>
             </label>
@@ -91,8 +88,7 @@
 
         @case('birthdate')
             <input type="date"
-                wire:model.defer="data.{{ $field->code }}"
-                wire:change="calculate"
+                wire:model.live="data.{{ $field->code }}"
                 max="{{ now()->subYears(18)->format('Y-m-d') }}"
                 class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500">
             @break
@@ -122,7 +118,8 @@
                     <input type="checkbox"
                         class="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
                         data-linked="{{ $field->linked_to }}"
-                        data-target="{{ $field->code }}">
+                        data-target="{{ $field->code }}"
+                        onchange="if(this.checked){ document.querySelector('[wire\\:model\\.defer=&quot;data.{{ $field->code }}&quot;]').value = document.querySelector('[wire\\:model\\.defer=&quot;data.{{ $field->linked_to }}&quot;]')?.value || ''; document.querySelector('[wire\\:model\\.defer=&quot;data.{{ $field->code }}&quot;]').dispatchEvent(new Event('input')); }">
                     <span class="text-purple-700">↔ Совпадает с «{{ $field->linked_to }}»</span>
                 </label>
                 <input type="text"

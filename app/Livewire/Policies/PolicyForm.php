@@ -41,7 +41,10 @@ class PolicyForm extends Component
         $this->data = [];
         $this->premium = 0;
         $this->calculation = [];
+        $this->declarationAgreements = [];
+        $this->agreementChecks = [];
         $this->initDataDefaults();
+        $this->calculate();
     }
 
     public function updated($field): void
@@ -74,25 +77,56 @@ class PolicyForm extends Component
         $product = $this->getProduct();
         if (!$product) return;
 
+        // Подставляем дефолтные значения для покрытий если их нет
+        $values = $this->data;
+        foreach ($product->coverages as $cov) {
+            if ($cov->code && !isset($values[$cov->code])) {
+                if ($cov->type === 'flag') {
+                    $values[$cov->code] = false;
+                } else {
+                    $values[$cov->code] = $cov->default_value ?? 0;
+                }
+            }
+        }
+
+        // Конвертируем числовые значения
+        foreach ($values as $key => $val) {
+            if (is_numeric($val)) {
+                $values[$key] = (float)$val;
+            }
+            if (is_bool($val)) {
+                $values[$key] = $val ? 1 : 0;
+            }
+            // Строки "0" или "" считаем как 0 для числовых полей
+            if ($val === '' || $val === null) {
+                $values[$key] = 0;
+            }
+        }
+
         try {
-            // Используем калькулятор продукта
+            // Вариант 1: Формула напрямую через FormulaCalculator
+            if (!empty($product->formula_expression)) {
+                $formulaCalc = app(FormulaCalculator::class);
+                $premium = $formulaCalc->calculate($product, $values);
+                $this->premium = $premium;
+                $this->calculation = [
+                    'premium' => $premium,
+                    'breakdown' => $values,
+                ];
+                return;
+            }
+
+            // Вариант 2: Калькулятор продукта (старые классы)
             $calc = $product->calculator();
             $result = $calc->calculate($this->data);
             $this->premium = $result['premium'] ?? 0;
             $this->calculation = $result;
         } catch (\Throwable $e) {
-            // Fallback: ручной расчёт из формулы
-            try {
-                if ($product->formula_expression) {
-                    $formulaCalc = app(FormulaCalculator::class);
-                    $this->premium = $formulaCalc->calculate($product, $this->data);
-                    $this->calculation = ['premium' => $this->premium, 'breakdown' => $this->data];
-                } else {
-                    $this->calculation = ['premium' => 0, 'errors' => ['formula' => 'Калькулятор недоступен: ' . $e->getMessage()]];
-                }
-            } catch (\Throwable $e2) {
-                $this->calculation = ['premium' => 0, 'errors' => ['formula' => 'Ошибка расчёта: ' . $e2->getMessage()]];
-            }
+            $this->premium = 0;
+            $this->calculation = [
+                'premium' => 0,
+                'errors' => ['formula' => 'Ошибка расчёта: ' . $e->getMessage()],
+            ];
         }
     }
 
