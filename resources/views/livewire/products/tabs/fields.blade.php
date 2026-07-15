@@ -11,6 +11,31 @@
         </div>
     </div>
 
+    {{-- [4] Порядок секций: группы + покрытия --}}
+    @if(!empty($sectionOrder))
+        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+            <h3 class="text-sm font-semibold text-yellow-800 mb-2">📋 Порядок секций в форме полиса</h3>
+            <p class="text-xs text-yellow-700 mb-3">Перемещайте секции стрелками. «Покрытия» — блок страховых сумм.</p>
+            <div class="space-y-1">
+                @foreach($sectionOrder as $sIdx => $section)
+                    <div class="flex items-center gap-2 bg-white rounded p-2 border border-yellow-100">
+                        <div class="flex flex-col gap-0.5">
+                            <button wire:click="moveSectionUp({{ $sIdx }})" class="text-gray-300 hover:text-gray-600 text-xs">▲</button>
+                            <button wire:click="moveSectionDown({{ $sIdx }})" class="text-gray-300 hover:text-gray-600 text-xs">▼</button>
+                        </div>
+                        <span class="text-sm font-medium text-gray-700">
+                            @if($section === 'coverages')
+                                📦 Покрытия и страховые суммы
+                            @else
+                                📁 {{ collect($fieldGroups)->firstWhere('id', $section)['name'] ?? 'Группа #' . $section }}
+                            @endif
+                        </span>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+    @endif
+
     @if(empty($fieldGroups) && empty($fields))
         <div class="text-center py-12 text-gray-400">
             <svg class="mx-auto h-12 w-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -32,11 +57,16 @@
                 </div>
             @endif
 
-            {{-- Группы с полями --}}
+            {{-- Группы с полями (с сортировкой) --}}
             @foreach($fieldGroups as $gIndex => $group)
                 <div class="border border-blue-200 bg-blue-50 rounded-lg p-4">
                     <div class="flex justify-between items-center mb-3">
                         <div class="flex items-center gap-3">
+                            {{-- [4] Кнопки сортировки групп --}}
+                            <div class="flex flex-col gap-0.5">
+                                <button wire:click="moveGroupUp({{ $gIndex }})" class="text-gray-300 hover:text-gray-600 text-xs" title="Вверх">▲</button>
+                                <button wire:click="moveGroupDown({{ $gIndex }})" class="text-gray-300 hover:text-gray-600 text-xs" title="Вниз">▼</button>
+                            </div>
                             <input type="text" wire:model.defer="fieldGroups.{{ $gIndex }}.name"
                                 class="font-semibold text-gray-800 border-none bg-transparent focus:ring-0 text-base">
                             <span class="text-xs text-gray-400">{{ $group['code'] ?? '' }}</span>

@@ -66,6 +66,7 @@ class ProductForm extends Component
     // ─── Tab 5: Настройка полей ───────────────────────────────────────────
     public array $fieldGroups = [];
     public array $fields = [];
+    public array $sectionOrder = []; // порядок секций: ['group_id', ..., 'coverages', ...]
     public bool $showFieldGroupModal = false;
     public bool $showFieldModal = false;
     public int $editingFieldIndex = -1;
@@ -216,6 +217,16 @@ class ProductForm extends Component
             'linked_to' => $f->linked_to ?? '',
             'sort_order' => $f->sort_order,
         ])->toArray();
+
+        // Section order — из config_json или дефолтный
+        $savedOrder = $p->config_json['section_order'] ?? null;
+        if ($savedOrder) {
+            $this->sectionOrder = $savedOrder;
+        } else {
+            // Дефолтный: все группы + покрытия в конце
+            $this->sectionOrder = $p->fieldGroups->pluck('id')->toArray();
+            $this->sectionOrder[] = 'coverages';
+        }
 
         // Tab 6
         $this->documents = $p->documents->map(fn($d) => [
@@ -458,13 +469,16 @@ class ProductForm extends Component
     // ═══════════════════════════════════════════════════════════════════════
     public function addFieldGroup(): void
     {
+        $newId = 'new_' . uniqid();
         $this->fieldGroups[] = [
-            'id' => null,
+            'id' => $newId,
             'name' => 'Новая группа',
             'code' => '',
             'description' => '',
             'sort_order' => count($this->fieldGroups),
         ];
+        // Добавляем в sectionOrder
+        $this->sectionOrder[] = $newId;
     }
 
     public function removeFieldGroup(int $index): void
@@ -479,8 +493,54 @@ class ProductForm extends Component
             }
             $this->fields = array_values($this->fields);
         }
+        // Удаляем из sectionOrder
+        $this->sectionOrder = array_values(array_filter($this->sectionOrder, fn($s) => $s !== $groupId));
         unset($this->fieldGroups[$index]);
         $this->fieldGroups = array_values($this->fieldGroups);
+    }
+
+    public function moveGroupUp(int $index): void
+    {
+        if ($index > 0) {
+            $tmp = $this->fieldGroups[$index];
+            $this->fieldGroups[$index] = $this->fieldGroups[$index - 1];
+            $this->fieldGroups[$index - 1] = $tmp;
+            // Обновляем sort_order
+            foreach ($this->fieldGroups as $i => $g) {
+                $this->fieldGroups[$i]['sort_order'] = $i;
+            }
+        }
+    }
+
+    public function moveGroupDown(int $index): void
+    {
+        if ($index < count($this->fieldGroups) - 1) {
+            $tmp = $this->fieldGroups[$index];
+            $this->fieldGroups[$index] = $this->fieldGroups[$index + 1];
+            $this->fieldGroups[$index + 1] = $tmp;
+            foreach ($this->fieldGroups as $i => $g) {
+                $this->fieldGroups[$i]['sort_order'] = $i;
+            }
+        }
+    }
+
+    // ─── Section order (группы + покрытия) ────────────────────────────────
+    public function moveSectionUp(int $index): void
+    {
+        if ($index > 0) {
+            $tmp = $this->sectionOrder[$index];
+            $this->sectionOrder[$index] = $this->sectionOrder[$index - 1];
+            $this->sectionOrder[$index - 1] = $tmp;
+        }
+    }
+
+    public function moveSectionDown(int $index): void
+    {
+        if ($index < count($this->sectionOrder) - 1) {
+            $tmp = $this->sectionOrder[$index];
+            $this->sectionOrder[$index] = $this->sectionOrder[$index + 1];
+            $this->sectionOrder[$index + 1] = $tmp;
+        }
     }
 
     public function addField(): void
@@ -714,11 +774,12 @@ class ProductForm extends Component
     {
         if ($this->policy_template) {
             $path = $this->policy_template->store('templates', 'local');
-            $this->documents = collect($this->documents)->reject(fn($d) => $d['type'] === 'policy')->toArray();
+            $this->documents = collect($this->documents)->reject(fn($d) => $d['type'] === 'policy')->values()->toArray();
             $this->documents[] = [
                 'id' => null, 'type' => 'policy',
                 'name' => $this->policy_template->getClientOriginalName(),
                 'file_path' => $path, 'is_enabled' => true,
+                'apply_conditions' => [],
             ];
         }
     }
@@ -727,11 +788,12 @@ class ProductForm extends Component
     {
         if ($this->kid_template) {
             $path = $this->kid_template->store('templates', 'local');
-            $this->documents = collect($this->documents)->reject(fn($d) => $d['type'] === 'kid')->toArray();
+            $this->documents = collect($this->documents)->reject(fn($d) => $d['type'] === 'kid')->values()->toArray();
             $this->documents[] = [
                 'id' => null, 'type' => 'kid',
                 'name' => $this->kid_template->getClientOriginalName(),
                 'file_path' => $path, 'is_enabled' => true,
+                'apply_conditions' => [],
             ];
         }
     }
@@ -740,13 +802,42 @@ class ProductForm extends Component
     {
         if ($this->application_template) {
             $path = $this->application_template->store('templates', 'local');
-            $this->documents = collect($this->documents)->reject(fn($d) => $d['type'] === 'application')->toArray();
+            $this->documents = collect($this->documents)->reject(fn($d) => $d['type'] === 'application')->values()->toArray();
             $this->documents[] = [
                 'id' => null, 'type' => 'application',
                 'name' => $this->application_template->getClientOriginalName(),
                 'file_path' => $path, 'is_enabled' => true,
+                'apply_conditions' => [],
             ];
         }
+    }
+
+    // ─── Document conditions ──────────────────────────────────────────────
+    public function addDocumentCondition(int $docIndex): void
+    {
+        if (!isset($this->documents[$docIndex]['apply_conditions'])) {
+            $this->documents[$docIndex]['apply_conditions'] = [];
+        }
+        $this->documents[$docIndex]['apply_conditions'][] = [
+            'field_code' => '', 'operator' => '=', 'value' => ''
+        ];
+    }
+
+    public function removeDocumentCondition(int $docIndex, int $condIndex): void
+    {
+        unset($this->documents[$docIndex]['apply_conditions'][$condIndex]);
+        $this->documents[$docIndex]['apply_conditions'] = array_values($this->documents[$docIndex]['apply_conditions']);
+    }
+
+    public function addDocument(string $type): void
+    {
+        // Заглушка — шаблон добавляется через загрузку файла
+    }
+
+    public function removeDocument(int $index): void
+    {
+        unset($this->documents[$index]);
+        $this->documents = array_values($this->documents);
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -774,6 +865,10 @@ class ProductForm extends Component
         
         $product = $this->productId ? Product::find($this->productId) : new Product();
         
+        // Сохраняем section_order в config_json
+        $configJson = $product->config_json ?? [];
+        $configJson['section_order'] = $this->sectionOrder;
+
         $product->fill([
             'name' => $this->name,
             'marketing_name' => $this->marketing_name ?: null,
@@ -782,7 +877,7 @@ class ProductForm extends Component
             'currency' => $this->currency,
             'numerator_id' => $this->numerator_id ?: null,
             'calculator_class' => $product->calculator_class ?? 'App\\Services\\ProductCalculators\\FormulaBasedCalculator',
-            'config_json' => $product->config_json ?? [],
+            'config_json' => $configJson,
             'formula_expression' => $this->formula_expression ?: null,
             'formula_variables' => $this->getFormulaVariables()['available'],
             'is_active' => true,

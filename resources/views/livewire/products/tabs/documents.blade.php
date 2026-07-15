@@ -24,7 +24,7 @@
         @endforeach
     </div>
 
-    {{-- Шаблоны --}}
+    {{-- Типы шаблонов --}}
     @foreach([
         ['key' => 'policy', 'label' => 'Полис', 'prop' => 'policy_template', 'toggle' => 'use_policy'],
         ['key' => 'kid', 'label' => 'КИД (Ключевой Информационный Документ)', 'prop' => 'kid_template', 'toggle' => 'use_kid'],
@@ -43,18 +43,75 @@
             </div>
 
             @if(${$docType['toggle']})
-                @php 
-                    $existing = collect($documents)->firstWhere('type', $docType['key']);
-                @endphp
-                @if($existing)
-                    <div class="flex items-center gap-2 text-sm text-green-600 mb-2">
-                        <span>✅</span>
-                        <span>{{ $existing['name'] }}</span>
+                {{-- Загрузка файла --}}
+                <div class="mb-3">
+                    <input type="file" wire:model="{{ $docType['prop'] }}" accept=".docx"
+                        class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                    <p class="text-xs text-gray-400 mt-1">Формат: .docx с переменными ${variable}</p>
+                </div>
+
+                {{-- Существующие шаблоны --}}
+                @php $typeDocs = collect($documents)->filter(fn($d) => $d['type'] === $docType['key'])->values(); @endphp
+                @foreach($typeDocs as $doc)
+                    @php $realIndex = collect($documents)->search(fn($d) => $d === $doc); @endphp
+                    <div class="border border-gray-100 bg-gray-50 rounded p-3 mb-2">
+                        <div class="flex justify-between items-center mb-2">
+                            <div class="flex items-center gap-2">
+                                <span class="text-green-600 text-sm">✅</span>
+                                <span class="text-sm font-medium">{{ $doc['name'] }}</span>
+                                @if(empty($doc['apply_conditions']))
+                                    <span class="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded">По умолчанию</span>
+                                @else
+                                    <span class="text-xs px-2 py-0.5 bg-orange-100 text-orange-700 rounded">С условиями</span>
+                                @endif
+                            </div>
+                            <button wire:click="removeDocument({{ $realIndex }})"
+                                class="text-red-400 hover:text-red-600 text-sm">Удалить</button>
+                        </div>
+
+                        {{-- [5] Условия применения шаблона --}}
+                        <div class="mt-2">
+                            <details class="text-sm">
+                                <summary class="cursor-pointer text-blue-600 hover:text-blue-800 text-xs font-medium">
+                                    ⚙️ Условия применения шаблона
+                                    <span class="text-gray-400 font-normal">(если пусто — применяется по умолчанию)</span>
+                                </summary>
+                                <div class="mt-2 space-y-2">
+                                    @if(!empty($doc['apply_conditions']))
+                                        @foreach($doc['apply_conditions'] as $cIdx => $condition)
+                                            <div class="flex items-center gap-2 bg-white rounded p-2">
+                                                <input type="text"
+                                                    wire:model.defer="documents.{{ $realIndex }}.apply_conditions.{{ $cIdx }}.field_code"
+                                                    class="w-36 border border-gray-300 rounded px-2 py-1 text-sm"
+                                                    placeholder="Поле (код)">
+                                                <select wire:model.defer="documents.{{ $realIndex }}.apply_conditions.{{ $cIdx }}.operator"
+                                                    class="w-28 border border-gray-300 rounded px-2 py-1 text-sm">
+                                                    <option value="=">Равно</option>
+                                                    <option value="!=">Не равно</option>
+                                                    <option value="in">В списке</option>
+                                                    <option value="not_in">Не в списке</option>
+                                                    <option value="contains">Содержит</option>
+                                                </select>
+                                                <input type="text"
+                                                    wire:model.defer="documents.{{ $realIndex }}.apply_conditions.{{ $cIdx }}.value"
+                                                    class="flex-1 border border-gray-300 rounded px-2 py-1 text-sm"
+                                                    placeholder="Значение (через запятую для «в списке»)">
+                                                <button wire:click="removeDocumentCondition({{ $realIndex }}, {{ $cIdx }})"
+                                                    class="text-red-400 hover:text-red-600">✕</button>
+                                            </div>
+                                        @endforeach
+                                    @endif
+                                    <button wire:click="addDocumentCondition({{ $realIndex }})"
+                                        class="text-xs text-blue-600 hover:text-blue-800">+ Добавить условие</button>
+                                    <p class="text-xs text-gray-400">
+                                        Пример: <code>bank</code> = <code>sber</code> → шаблон применяется только для Сбербанка.
+                                        Все условия работают как «И» (должны выполняться все).
+                                    </p>
+                                </div>
+                            </details>
+                        </div>
                     </div>
-                @endif
-                <input type="file" wire:model="{{ $docType['prop'] }}" accept=".docx"
-                    class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
-                <p class="text-xs text-gray-400 mt-1">Формат: .docx с переменными ${variable}</p>
+                @endforeach
             @endif
         </div>
     @endforeach

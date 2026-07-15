@@ -6,7 +6,7 @@
         </div>
     @endif
     @if (session()->has('err'))
-        <div class="fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-50">
+        <div class="fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 max-w-lg">
             {{ session('err') }}
         </div>
     @endif
@@ -77,7 +77,7 @@
 
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 @foreach($fields->where('group_id', $group->id) as $field)
-                                    @include('livewire.policies.partials.field-render', ['field' => $field])
+                                    @include('livewire.policies.partials.field-render', ['field' => $field, 'product' => $product])
                                 @endforeach
                             </div>
                         </div>
@@ -96,7 +96,7 @@
                         </div>
                     @endif
 
-                    {{-- Покрытия (если нет в полях) --}}
+                    {{-- Покрытия и страховые суммы --}}
                     @if($coverages->isNotEmpty())
                         <div class="bg-white rounded-lg shadow p-6">
                             <h2 class="text-lg font-semibold text-gray-800 mb-4">Покрытия и страховые суммы</h2>
@@ -139,6 +139,7 @@
                                             </select>
 
                                         @elseif($cov->type === 'flag')
+                                            {{-- [1] Флаг — checkbox, НЕ отмечен по умолчанию --}}
                                             <label class="flex items-center gap-2 cursor-pointer">
                                                 <input type="checkbox"
                                                     wire:model.live="data.{{ $cov->code }}"
@@ -164,7 +165,7 @@
                                     <span class="text-sm text-gray-700">
                                         {{ $agreement->text }}
                                         @if($agreement->required)
-                                            <span class="text-red-500 font-semibold">*</span>
+                                            <span class="text-red-500 font-semibold">* обязательно</span>
                                         @endif
                                     </span>
                                 </label>
@@ -217,13 +218,6 @@
                         <div class="border-t pt-4">
                             <h4 class="text-xs font-semibold text-gray-500 mb-2">ДЕТАЛИЗАЦИЯ</h4>
                             <pre class="text-xs text-gray-600 bg-gray-50 rounded p-3 overflow-x-auto">{{ json_encode($calculation['breakdown'], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) }}</pre>
-                        </div>
-                    @endif
-
-                    @if(!empty($calculation['debug']))
-                        <div class="border-t pt-4 mt-4">
-                            <h4 class="text-xs font-semibold text-gray-500 mb-2">🔧 ОТЛАДКА</h4>
-                            <pre class="text-xs text-gray-600 bg-gray-50 rounded p-3 overflow-x-auto max-h-64">{{ json_encode($calculation['debug'], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) }}</pre>
                         </div>
                     @endif
 

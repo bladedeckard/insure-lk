@@ -64,7 +64,16 @@ class PolicyForm extends Component
 
         foreach ($product->coverages as $cov) {
             if ($cov->code && !isset($this->data[$cov->code])) {
-                $this->data[$cov->code] = $cov->default_value ?? ($cov->type === 'flag' ? false : 0);
+                if ($cov->type === 'flag') {
+                    // Флаг всегда false по умолчанию
+                    $this->data[$cov->code] = false;
+                } elseif ($cov->type === 'set') {
+                    // Для множества — первое значение из списка
+                    $this->data[$cov->code] = $cov->set_values[0] ?? $cov->default_value ?? 0;
+                } else {
+                    // Для range/constant — default_value
+                    $this->data[$cov->code] = $cov->default_value ?? 0;
+                }
             }
         }
     }
@@ -180,6 +189,38 @@ class PolicyForm extends Component
         $product = $this->getProduct();
         if (!$product) {
             session()->flash('err', 'Выберите продукт');
+            return null;
+        }
+
+        $errors = [];
+
+        // ─── [6] Проверка обязательных соглашений ──────────────────────
+        foreach ($product->agreements as $idx => $agreement) {
+            if ($agreement->required && empty($this->agreementChecks[$idx])) {
+                $errors[] = 'Необходимо подтвердить: "' . mb_substr($agreement->text, 0, 80) . '..."';
+            }
+        }
+
+        // ─── [6] Проверка обязательных деклараций ───────────────────────
+        foreach ($product->declarations()->where('is_active', true)->get() as $decl) {
+            if ($decl->required && empty($this->declarationAgreements[$decl->id])) {
+                $errors[] = 'Необходимо подтвердить декларацию: "' . $decl->name . '"';
+            }
+        }
+
+        // ─── [3] Валидация даты начала ──────────────────────────────────
+        if (!empty($this->data['start_date'])) {
+            $startDate = Carbon::parse($this->data['start_date']);
+            $minDate = now()->addDays($product->period_start_days ?? 0)->startOfDay();
+
+            if ($startDate->lt($minDate)) {
+                $errors[] = 'Дата начала не может быть ранее ' . $minDate->format('d.m.Y')
+                    . ' (сегодня + ' . ($product->period_start_days ?? 0) . ' дней)';
+            }
+        }
+
+        if (!empty($errors)) {
+            session()->flash('err', implode('; ', $errors));
             return null;
         }
 

@@ -1,4 +1,20 @@
 {{-- Динамический рендер поля на основе его типа --}}
+@php
+    $isStartDateField = ($field->code === 'start_date');
+    $dateMin = null;
+    $dateDisabled = false;
+
+    if ($isStartDateField && isset($product)) {
+        // [3] Минимальная дата = сегодня + period_start_days
+        $dateMin = now()->addDays($product->period_start_days ?? 0)->format('Y-m-d');
+        
+        // [2] Если редактирование даты запрещено
+        if (!$product->allow_edit_start_date) {
+            $dateDisabled = true;
+        }
+    }
+@endphp
+
 <div class="{{ in_array($field->type, ['textarea', 'address']) ? 'md:col-span-2' : '' }}">
     <label class="block text-sm font-medium text-gray-700 mb-1">
         {{ $field->name }}
@@ -33,7 +49,18 @@
         @case('date')
             <input type="date"
                 wire:model.live="data.{{ $field->code }}"
-                class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500">
+                @if($dateMin) min="{{ $dateMin }}" @endif
+                @if($dateDisabled) disabled @endif
+                class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500
+                    {{ $dateDisabled ? 'bg-gray-100 cursor-not-allowed' : '' }}">
+            @if($isStartDateField && isset($product))
+                <p class="text-xs text-gray-400 mt-1">
+                    Минимальная дата: {{ now()->addDays($product->period_start_days ?? 0)->format('d.m.Y') }}
+                    @if(!$product->allow_edit_start_date)
+                        · <span class="text-orange-600">Дата устанавливается автоматически</span>
+                    @endif
+                </p>
+            @endif
             @break
 
         @case('select')
@@ -75,7 +102,7 @@
                 maxlength="5"
                 class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
                 placeholder="XX XX">
-            <p class="text-xs text-gray-400 mt-1">Формат: XX XX (последние 2 цифры ≤ {{ date('y') }})</p>
+            <p class="text-xs text-gray-400 mt-1">Формат: XX XX</p>
             @break
 
         @case('passport_number')
@@ -116,10 +143,9 @@
             <div class="space-y-2">
                 <label class="flex items-center gap-2 cursor-pointer text-sm">
                     <input type="checkbox"
-                        class="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
-                        data-linked="{{ $field->linked_to }}"
-                        data-target="{{ $field->code }}"
-                        onchange="if(this.checked){ document.querySelector('[wire\\:model\\.defer=&quot;data.{{ $field->code }}&quot;]').value = document.querySelector('[wire\\:model\\.defer=&quot;data.{{ $field->linked_to }}&quot;]')?.value || ''; document.querySelector('[wire\\:model\\.defer=&quot;data.{{ $field->code }}&quot;]').dispatchEvent(new Event('input')); }">
+                        class="rounded border-gray-300 text-purple-600 focus:ring-purple-500 linked-field-toggle"
+                        data-source="{{ $field->linked_to }}"
+                        data-target="{{ $field->code }}">
                     <span class="text-purple-700">↔ Совпадает с «{{ $field->linked_to }}»</span>
                 </label>
                 <input type="text"
