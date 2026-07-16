@@ -13,11 +13,34 @@
                     <div class="flex flex-wrap gap-1">
                         @foreach($categoryVars as $varCode => $varLabel)
                             <button type="button"
-                                class="inline-flex items-center gap-1 px-2 py-1 bg-white rounded border border-yellow-200 text-xs cursor-pointer hover:bg-yellow-100 hover:border-yellow-400 transition-colors"
-                                data-var-code="{{ $varCode }}"
-                                onclick="copyTemplateVar(this)"
-                                title="Нажмите чтобы скопировать: ${{ $varCode }}">
-                                <code class="text-blue-600 font-semibold">{{ '$' }}{{ '{' . $varCode . '}' }}</code>
+                                x-data="{ copied: false }"
+                                x-on:click="
+                                    let text = '$' + '{' + '{{ $varCode }}' + '}';
+                                    let el = $el;
+                                    if (navigator.clipboard && window.isSecureContext) {
+                                        navigator.clipboard.writeText(text).then(() => {
+                                            el.dataset.copied = '1';
+                                            setTimeout(() => { el.dataset.copied = '0'; }, 1500);
+                                        });
+                                    } else {
+                                        let ta = document.createElement('textarea');
+                                        ta.value = text;
+                                        ta.style.cssText = 'position:fixed;left:-9999px';
+                                        document.body.appendChild(ta);
+                                        ta.select();
+                                        document.execCommand('copy');
+                                        document.body.removeChild(ta);
+                                        el.dataset.copied = '1';
+                                        setTimeout(() => { el.dataset.copied = '0'; }, 1500);
+                                    }
+                                "
+                                :class="dataset.copied === '1' ? 'bg-green-50 border-green-400' : 'bg-white border-yellow-200 hover:bg-yellow-100 hover:border-yellow-400'"
+                                class="inline-flex items-center gap-1 px-2 py-1 rounded border text-xs cursor-pointer transition-colors"
+                                title="Нажмите чтобы скопировать">
+                                <code class="font-semibold" :class="dataset.copied === '1' ? 'text-green-600' : 'text-blue-600'">
+                                    <span x-show="dataset.copied !== '1'">{{ '$' }}{{ '{' . $varCode . '}' }}</span>
+                                    <span x-show="dataset.copied === '1'" x-cloak>✅ Скопировано!</span>
+                                </code>
                                 <span class="text-gray-400">— {{ $varLabel }}</span>
                             </button>
                         @endforeach
@@ -26,46 +49,6 @@
             @endif
         @endforeach
     </div>
-
-    <script>
-    function copyTemplateVar(btn) {
-        var code = btn.getAttribute('data-var-code');
-        var text = '${' + code + '}';
-        
-        // Современный API
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(text).then(function() {
-                showCopied(btn);
-            }).catch(function() {
-                fallbackCopy(text, btn);
-            });
-        } else {
-            fallbackCopy(text, btn);
-        }
-    }
-    
-    function fallbackCopy(text, btn) {
-        var ta = document.createElement('textarea');
-        ta.value = text;
-        ta.style.position = 'fixed';
-        ta.style.left = '-9999px';
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand('copy');
-        document.body.removeChild(ta);
-        showCopied(btn);
-    }
-    
-    function showCopied(btn) {
-        var orig = btn.innerHTML;
-        btn.innerHTML = '<span class="text-green-600 font-semibold">✅ Скопировано!</span>';
-        btn.classList.add('bg-green-50', 'border-green-300');
-        setTimeout(function() {
-            btn.innerHTML = orig;
-            btn.classList.remove('bg-green-50', 'border-green-300');
-        }, 1500);
-    }
-    </script>
 
     {{-- Типы шаблонов --}}
     @foreach([

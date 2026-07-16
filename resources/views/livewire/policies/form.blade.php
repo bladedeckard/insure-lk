@@ -69,16 +69,55 @@
 
                     {{-- [1] Рендеринг секций по sectionOrder --}}
                     @php
-                        $sectionOrder = $product->config_json['section_order'] ?? null;
-                        if (!$sectionOrder) {
-                            // Дефолтный порядок: все группы + покрытия в конце
-                            $sectionOrder = $fieldGroups->pluck('id')->toArray();
-                            $sectionOrder[] = 'coverages';
+                        $cfgJson = $product->config_json ?? [];
+                        $rawOrder = $cfgJson['section_order'] ?? null;
+
+                        // Строим нормализованный sectionOrder
+                        $sectionOrder = [];
+                        if (is_array($rawOrder) && count($rawOrder) > 0) {
+                            foreach ($rawOrder as $s) {
+                                if ($s === 'coverages') {
+                                    $sectionOrder[] = ['type' => 'coverages'];
+                                } else {
+                                    // Ищем группу по id (loose comparison)
+                                    $found = null;
+                                    foreach ($fieldGroups as $fg) {
+                                        if ($fg->id == $s) {
+                                            $found = $fg;
+                                            break;
+                                        }
+                                    }
+                                    if ($found) {
+                                        $sectionOrder[] = ['type' => 'group', 'group' => $found];
+                                    }
+                                }
+                            }
+                        }
+
+                        // Если sectionOrder пустой — дефолтный: группы + покрытия в конце
+                        if (empty($sectionOrder)) {
+                            foreach ($fieldGroups as $fg) {
+                                $sectionOrder[] = ['type' => 'group', 'group' => $fg];
+                            }
+                            $sectionOrder[] = ['type' => 'coverages'];
+                        }
+
+                        // Проверяем что все группы учтены (на случай если sectionOrder устарел)
+                        $renderedGroupIds = [];
+                        foreach ($sectionOrder as $sec) {
+                            if ($sec['type'] === 'group') {
+                                $renderedGroupIds[] = $sec['group']->id;
+                            }
+                        }
+                        foreach ($fieldGroups as $fg) {
+                            if (!in_array($fg->id, $renderedGroupIds)) {
+                                $sectionOrder[] = ['type' => 'group', 'group' => $fg];
+                            }
                         }
                     @endphp
 
-                    @foreach($sectionOrder as $sectionId)
-                        @if($sectionId === 'coverages')
+                    @foreach($sectionOrder as $section)
+                        @if($section['type'] === 'coverages')
                             {{-- Покрытия и страховые суммы --}}
                             @if($coverages->isNotEmpty())
                                 <div class="bg-white rounded-lg shadow p-6">
@@ -135,23 +174,21 @@
                                 </div>
                             @endif
 
-                        @else
+                        @elseif($section['type'] === 'group')
                             {{-- Группа полей --}}
-                            @php $group = $fieldGroups->firstWhere('id', $sectionId); @endphp
-                            @if($group)
-                                <div class="bg-white rounded-lg shadow p-6">
-                                    <h2 class="text-lg font-semibold text-gray-800 mb-4">{{ $group->name }}</h2>
-                                    @if($group->description)
-                                        <p class="text-sm text-gray-500 mb-4">{{ $group->description }}</p>
-                                    @endif
+                            @php $group = $section['group']; @endphp
+                            <div class="bg-white rounded-lg shadow p-6">
+                                <h2 class="text-lg font-semibold text-gray-800 mb-4">{{ $group->name }}</h2>
+                                @if($group->description)
+                                    <p class="text-sm text-gray-500 mb-4">{{ $group->description }}</p>
+                                @endif
 
-                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        @foreach($fields->where('group_id', $group->id) as $field)
-                                            @include('livewire.policies.partials.field-render', ['field' => $field, 'product' => $product])
-                                        @endforeach
-                                    </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    @foreach($fields->where('group_id', $group->id) as $field)
+                                        @include('livewire.policies.partials.field-render', ['field' => $field, 'product' => $product])
+                                    @endforeach
                                 </div>
-                            @endif
+                            </div>
                         @endif
                     @endforeach
 

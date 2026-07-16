@@ -30,13 +30,17 @@
                                 @php
                                     $matchedGroup = null;
                                     foreach ($fieldGroups as $fg) {
-                                        if ((string)($fg['id'] ?? '') === (string)$section) {
+                                        if ((string)($fg['id'] ?? '') == (string)$section) {
                                             $matchedGroup = $fg;
                                             break;
                                         }
                                     }
                                 @endphp
-                                📁 {{ $matchedGroup['name'] ?? 'Группа (не найдена)' }}
+                                @if($matchedGroup)
+                                    📁 {{ $matchedGroup['name'] }}
+                                @else
+                                    📁 <span class="text-gray-400 italic">Группа (сохраните продукт для обновления)</span>
+                                @endif
                             @endif
                         </span>
                     </div>
