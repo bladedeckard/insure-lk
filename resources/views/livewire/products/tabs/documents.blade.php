@@ -3,7 +3,7 @@
 
     <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
         <h3 class="text-sm font-semibold text-yellow-800 mb-2">📋 Доступные переменные для шаблонов</h3>
-        <p class="text-xs text-yellow-700 mb-3">Используйте <code>${variable}</code> в DOCX-шаблонах. Нажмите на переменную чтобы скопировать.</p>
+        <p class="text-xs text-yellow-700 mb-3">Используйте <code>${variable}</code> в DOCX-шаблонах. Нажмите на переменную — скопируется в буфер.</p>
         
         @php $vars = $this->getAvailableVariables(); @endphp
         @foreach($vars as $category => $categoryVars)
@@ -12,17 +12,60 @@
                     <h4 class="text-xs font-semibold text-yellow-800 mb-1">{{ $category }}</h4>
                     <div class="flex flex-wrap gap-1">
                         @foreach($categoryVars as $varCode => $varLabel)
-                            <span class="inline-flex items-center gap-1 px-2 py-1 bg-white rounded border border-yellow-200 text-xs cursor-pointer hover:bg-yellow-100"
-                                onclick="navigator.clipboard.writeText('${{ $varCode }}')" title="${{ $varCode }}">
-                                <code class="text-blue-600">{{ $varCode }}</code>
+                            <button type="button"
+                                class="inline-flex items-center gap-1 px-2 py-1 bg-white rounded border border-yellow-200 text-xs cursor-pointer hover:bg-yellow-100 hover:border-yellow-400 transition-colors"
+                                data-var-code="{{ $varCode }}"
+                                onclick="copyTemplateVar(this)"
+                                title="Нажмите чтобы скопировать: ${{ $varCode }}">
+                                <code class="text-blue-600 font-semibold">{{ '$' }}{{ '{' . $varCode . '}' }}</code>
                                 <span class="text-gray-400">— {{ $varLabel }}</span>
-                            </span>
+                            </button>
                         @endforeach
                     </div>
                 </div>
             @endif
         @endforeach
     </div>
+
+    <script>
+    function copyTemplateVar(btn) {
+        var code = btn.getAttribute('data-var-code');
+        var text = '${' + code + '}';
+        
+        // Современный API
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(function() {
+                showCopied(btn);
+            }).catch(function() {
+                fallbackCopy(text, btn);
+            });
+        } else {
+            fallbackCopy(text, btn);
+        }
+    }
+    
+    function fallbackCopy(text, btn) {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.left = '-9999px';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        showCopied(btn);
+    }
+    
+    function showCopied(btn) {
+        var orig = btn.innerHTML;
+        btn.innerHTML = '<span class="text-green-600 font-semibold">✅ Скопировано!</span>';
+        btn.classList.add('bg-green-50', 'border-green-300');
+        setTimeout(function() {
+            btn.innerHTML = orig;
+            btn.classList.remove('bg-green-50', 'border-green-300');
+        }, 1500);
+    }
+    </script>
 
     {{-- Типы шаблонов --}}
     @foreach([
@@ -80,10 +123,11 @@
                                     @if(!empty($doc['apply_conditions']))
                                         @foreach($doc['apply_conditions'] as $cIdx => $condition)
                                             <div class="flex items-center gap-2 bg-white rounded p-2">
-                                                <input type="text"
-                                                    wire:model.defer="documents.{{ $realIndex }}.apply_conditions.{{ $cIdx }}.field_code"
-                                                    class="w-36 border border-gray-300 rounded px-2 py-1 text-sm"
-                                                    placeholder="Поле (код)">
+                                                @include('livewire.products.partials.field-code-select', [
+                                                    'inputName' => 'documents.' . $realIndex . '.apply_conditions.' . $cIdx . '.field_code',
+                                                    'allFields' => $fields ?? [],
+                                                    'allCoverages' => $coverages ?? [],
+                                                ])
                                                 <select wire:model.defer="documents.{{ $realIndex }}.apply_conditions.{{ $cIdx }}.operator"
                                                     class="w-28 border border-gray-300 rounded px-2 py-1 text-sm">
                                                     <option value="=">Равно</option>

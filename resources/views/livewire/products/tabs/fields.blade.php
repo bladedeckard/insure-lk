@@ -15,7 +15,7 @@
     @if(!empty($sectionOrder))
         <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
             <h3 class="text-sm font-semibold text-yellow-800 mb-2">📋 Порядок секций в форме полиса</h3>
-            <p class="text-xs text-yellow-700 mb-3">Перемещайте секции стрелками. «Покрытия» — блок страховых сумм.</p>
+            <p class="text-xs text-yellow-700 mb-3">Перемещайте секции стрелками. Этот порядок будет в форме создания полиса.</p>
             <div class="space-y-1">
                 @foreach($sectionOrder as $sIdx => $section)
                     <div class="flex items-center gap-2 bg-white rounded p-2 border border-yellow-100">
@@ -27,7 +27,16 @@
                             @if($section === 'coverages')
                                 📦 Покрытия и страховые суммы
                             @else
-                                📁 {{ collect($fieldGroups)->firstWhere('id', $section)['name'] ?? 'Группа #' . $section }}
+                                @php
+                                    $matchedGroup = null;
+                                    foreach ($fieldGroups as $fg) {
+                                        if ((string)($fg['id'] ?? '') === (string)$section) {
+                                            $matchedGroup = $fg;
+                                            break;
+                                        }
+                                    }
+                                @endphp
+                                📁 {{ $matchedGroup['name'] ?? 'Группа (не найдена)' }}
                             @endif
                         </span>
                     </div>

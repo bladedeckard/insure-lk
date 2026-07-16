@@ -67,87 +67,102 @@
                         </div>
                     @endif
 
-                    {{-- Динамическая форма из полей продукта --}}
-                    @foreach($fieldGroups as $group)
-                        <div class="bg-white rounded-lg shadow p-6">
-                            <h2 class="text-lg font-semibold text-gray-800 mb-4">{{ $group->name }}</h2>
-                            @if($group->description)
-                                <p class="text-sm text-gray-500 mb-4">{{ $group->description }}</p>
+                    {{-- [1] Рендеринг секций по sectionOrder --}}
+                    @php
+                        $sectionOrder = $product->config_json['section_order'] ?? null;
+                        if (!$sectionOrder) {
+                            // Дефолтный порядок: все группы + покрытия в конце
+                            $sectionOrder = $fieldGroups->pluck('id')->toArray();
+                            $sectionOrder[] = 'coverages';
+                        }
+                    @endphp
+
+                    @foreach($sectionOrder as $sectionId)
+                        @if($sectionId === 'coverages')
+                            {{-- Покрытия и страховые суммы --}}
+                            @if($coverages->isNotEmpty())
+                                <div class="bg-white rounded-lg shadow p-6">
+                                    <h2 class="text-lg font-semibold text-gray-800 mb-4">Покрытия и страховые суммы</h2>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        @foreach($coverages as $cov)
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700 mb-1">
+                                                    {{ $cov->name }}
+                                                    @if($cov->required_for_calc)
+                                                        <span class="text-red-500">*</span>
+                                                    @endif
+                                                    @if(!empty($cov->risks))
+                                                        <span class="text-xs text-gray-400">({{ count($cov->risks) }} рисков)</span>
+                                                    @endif
+                                                </label>
+
+                                                @if($cov->type === 'range')
+                                                    <input type="number"
+                                                        wire:model.live="data.{{ $cov->code }}"
+                                                        min="{{ $cov->min_value ?? 0 }}"
+                                                        max="{{ $cov->max_value }}"
+                                                        class="w-full border border-gray-300 rounded-lg px-3 py-2"
+                                                        placeholder="от {{ number_format($cov->min_value ?? 0) }} до {{ number_format($cov->max_value ?? 0) }}">
+                                                    <p class="text-xs text-gray-400 mt-1">
+                                                        {{ number_format($cov->min_value ?? 0) }} — {{ number_format($cov->max_value ?? 0) }} ₽
+                                                        · По умолч.: {{ number_format($cov->default_value ?? 0) }} ₽
+                                                    </p>
+
+                                                @elseif($cov->type === 'constant')
+                                                    <div class="px-3 py-2 bg-gray-100 rounded-lg text-sm">
+                                                        {{ number_format($cov->default_value ?? 0) }} ₽ (фиксировано)
+                                                    </div>
+
+                                                @elseif($cov->type === 'set')
+                                                    <select wire:model.live="data.{{ $cov->code }}"
+                                                        class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                                                        @foreach($cov->set_values ?? [] as $val)
+                                                            <option value="{{ $val }}">{{ number_format($val) }} ₽</option>
+                                                        @endforeach
+                                                    </select>
+
+                                                @elseif($cov->type === 'flag')
+                                                    <label class="flex items-center gap-2 cursor-pointer">
+                                                        <input type="checkbox"
+                                                            wire:model.live="data.{{ $cov->code }}"
+                                                            class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                                        <span class="text-sm text-gray-700">Да</span>
+                                                    </label>
+                                                @endif
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </div>
                             @endif
 
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                @foreach($fields->where('group_id', $group->id) as $field)
-                                    @include('livewire.policies.partials.field-render', ['field' => $field, 'product' => $product])
-                                @endforeach
-                            </div>
-                        </div>
+                        @else
+                            {{-- Группа полей --}}
+                            @php $group = $fieldGroups->firstWhere('id', $sectionId); @endphp
+                            @if($group)
+                                <div class="bg-white rounded-lg shadow p-6">
+                                    <h2 class="text-lg font-semibold text-gray-800 mb-4">{{ $group->name }}</h2>
+                                    @if($group->description)
+                                        <p class="text-sm text-gray-500 mb-4">{{ $group->description }}</p>
+                                    @endif
+
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        @foreach($fields->where('group_id', $group->id) as $field)
+                                            @include('livewire.policies.partials.field-render', ['field' => $field, 'product' => $product])
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endif
+                        @endif
                     @endforeach
 
-                    {{-- Поля без группы --}}
+                    {{-- Поля без группы (если есть) --}}
                     @php $ungroupedFields = $fields->whereNull('group_id'); @endphp
                     @if($ungroupedFields->isNotEmpty())
                         <div class="bg-white rounded-lg shadow p-6">
                             <h2 class="text-lg font-semibold text-gray-800 mb-4">Дополнительные поля</h2>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 @foreach($ungroupedFields as $field)
-                                    @include('livewire.policies.partials.field-render', ['field' => $field])
-                                @endforeach
-                            </div>
-                        </div>
-                    @endif
-
-                    {{-- Покрытия и страховые суммы --}}
-                    @if($coverages->isNotEmpty())
-                        <div class="bg-white rounded-lg shadow p-6">
-                            <h2 class="text-lg font-semibold text-gray-800 mb-4">Покрытия и страховые суммы</h2>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                @foreach($coverages as $cov)
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">
-                                            {{ $cov->name }}
-                                            @if($cov->required_for_calc)
-                                                <span class="text-red-500">*</span>
-                                            @endif
-                                            @if(!empty($cov->risks))
-                                                <span class="text-xs text-gray-400">({{ count($cov->risks) }} рисков)</span>
-                                            @endif
-                                        </label>
-
-                                        @if($cov->type === 'range')
-                                            <input type="number"
-                                                wire:model.live="data.{{ $cov->code }}"
-                                                min="{{ $cov->min_value ?? 0 }}"
-                                                max="{{ $cov->max_value }}"
-                                                class="w-full border border-gray-300 rounded-lg px-3 py-2"
-                                                placeholder="от {{ number_format($cov->min_value ?? 0) }} до {{ number_format($cov->max_value ?? 0) }}">
-                                            <p class="text-xs text-gray-400 mt-1">
-                                                {{ number_format($cov->min_value ?? 0) }} — {{ number_format($cov->max_value ?? 0) }} ₽
-                                                · По умолч.: {{ number_format($cov->default_value ?? 0) }} ₽
-                                            </p>
-
-                                        @elseif($cov->type === 'constant')
-                                            <div class="px-3 py-2 bg-gray-100 rounded-lg text-sm">
-                                                {{ number_format($cov->default_value ?? 0) }} ₽ (фиксировано)
-                                            </div>
-
-                                        @elseif($cov->type === 'set')
-                                            <select wire:model.live="data.{{ $cov->code }}"
-                                                class="w-full border border-gray-300 rounded-lg px-3 py-2">
-                                                @foreach($cov->set_values ?? [] as $val)
-                                                    <option value="{{ $val }}">{{ number_format($val) }} ₽</option>
-                                                @endforeach
-                                            </select>
-
-                                        @elseif($cov->type === 'flag')
-                                            {{-- [1] Флаг — checkbox, НЕ отмечен по умолчанию --}}
-                                            <label class="flex items-center gap-2 cursor-pointer">
-                                                <input type="checkbox"
-                                                    wire:model.live="data.{{ $cov->code }}"
-                                                    class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-                                                <span class="text-sm text-gray-700">Да</span>
-                                            </label>
-                                        @endif
-                                    </div>
+                                    @include('livewire.policies.partials.field-render', ['field' => $field, 'product' => $product])
                                 @endforeach
                             </div>
                         </div>

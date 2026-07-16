@@ -80,8 +80,11 @@
                 <div class="space-y-2">
                     @foreach($restriction['conditions'] as $cIndex => $condition)
                         <div class="flex items-center gap-2 bg-gray-50 rounded p-2">
-                            <input type="text" wire:model.defer="underwritingRestrictions.{{ $rIndex }}.conditions.{{ $cIndex }}.field_code"
-                                class="w-36 border border-gray-300 rounded px-2 py-1 text-sm" placeholder="Поле">
+                            @include('livewire.products.partials.field-code-select', [
+                                'inputName' => 'underwritingRestrictions.' . $rIndex . '.conditions.' . $cIndex . '.field_code',
+                                'allFields' => $fields ?? [],
+                                'allCoverages' => $coverages ?? [],
+                            ])
                             <select wire:model.defer="underwritingRestrictions.{{ $rIndex }}.conditions.{{ $cIndex }}.operator"
                                 class="w-28 border border-gray-300 rounded px-2 py-1 text-sm">
                                 @foreach($operators as $op => $label)

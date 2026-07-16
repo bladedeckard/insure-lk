@@ -235,6 +235,7 @@ class ProductForm extends Component
             'name' => $d->name,
             'file_path' => $d->file_path,
             'is_enabled' => $d->is_enabled,
+            'apply_conditions' => $d->apply_conditions ?? [],
         ])->toArray();
 
         // Tab 7
@@ -774,13 +775,14 @@ class ProductForm extends Component
     {
         if ($this->policy_template) {
             $path = $this->policy_template->store('templates', 'local');
-            $this->documents = collect($this->documents)->reject(fn($d) => $d['type'] === 'policy')->values()->toArray();
+            // [3] НЕ удаляем предыдущие — добавляем новый шаблон
             $this->documents[] = [
                 'id' => null, 'type' => 'policy',
                 'name' => $this->policy_template->getClientOriginalName(),
                 'file_path' => $path, 'is_enabled' => true,
                 'apply_conditions' => [],
             ];
+            $this->policy_template = null; // сбрасываем для повторной загрузки
         }
     }
 
@@ -788,13 +790,13 @@ class ProductForm extends Component
     {
         if ($this->kid_template) {
             $path = $this->kid_template->store('templates', 'local');
-            $this->documents = collect($this->documents)->reject(fn($d) => $d['type'] === 'kid')->values()->toArray();
             $this->documents[] = [
                 'id' => null, 'type' => 'kid',
                 'name' => $this->kid_template->getClientOriginalName(),
                 'file_path' => $path, 'is_enabled' => true,
                 'apply_conditions' => [],
             ];
+            $this->kid_template = null;
         }
     }
 
@@ -802,13 +804,13 @@ class ProductForm extends Component
     {
         if ($this->application_template) {
             $path = $this->application_template->store('templates', 'local');
-            $this->documents = collect($this->documents)->reject(fn($d) => $d['type'] === 'application')->values()->toArray();
             $this->documents[] = [
                 'id' => null, 'type' => 'application',
                 'name' => $this->application_template->getClientOriginalName(),
                 'file_path' => $path, 'is_enabled' => true,
                 'apply_conditions' => [],
             ];
+            $this->application_template = null;
         }
     }
 
@@ -933,6 +935,21 @@ class ProductForm extends Component
             }
         }
 
+        // Обновляем sectionOrder: заменяем temp_id на реальные id
+        $updatedOrder = [];
+        foreach ($this->sectionOrder as $s) {
+            if ($s === 'coverages') {
+                $updatedOrder[] = 'coverages';
+            } elseif (isset($groupMap[$s])) {
+                $updatedOrder[] = $groupMap[$s];
+            } else {
+                $updatedOrder[] = $s;
+            }
+        }
+        $this->sectionOrder = $updatedOrder;
+        $configJson['section_order'] = $updatedOrder;
+        $product->update(['config_json' => $configJson]);
+
         // Поля
         $product->fields()->delete();
         foreach ($this->fields as $idx => $f) {
@@ -989,16 +1006,16 @@ class ProductForm extends Component
         }
 
         // Документы
+        $product->documents()->delete();
         foreach ($this->documents as $idx => $d) {
-            if (empty($d['id'])) {
-                $product->documents()->create([
-                    'type' => $d['type'],
-                    'name' => $d['name'],
-                    'file_path' => $d['file_path'],
-                    'is_enabled' => $d['is_enabled'] ?? true,
-                    'sort_order' => $idx,
-                ]);
-            }
+            $product->documents()->create([
+                'type' => $d['type'],
+                'name' => $d['name'],
+                'file_path' => $d['file_path'],
+                'is_enabled' => $d['is_enabled'] ?? true,
+                'apply_conditions' => $d['apply_conditions'] ?? [],
+                'sort_order' => $idx,
+            ]);
         }
 
         // Соглашения
@@ -1059,6 +1076,9 @@ class ProductForm extends Component
             'fieldTypes' => ProductField::typeOptions(),
             'operators' => ProductRestrictionCondition::operatorOptions(),
             'currencies' => ['RUB' => 'Рубли', 'USD' => 'Доллары', 'EUR' => 'Евро', 'TRY' => 'Лиры'],
+            // [4] Передаём поля и покрытия для partials (datalist выбора)
+            'allFields' => $this->fields,
+            'allCoverages' => $this->coverages,
             'tabs' => [
                 'basic' => 'Основная информация',
                 'coverages' => 'Покрытия и риски',
