@@ -220,11 +220,14 @@ class ProductForm extends Component
 
         // Section order — из config_json или дефолтный
         $savedOrder = $p->config_json['section_order'] ?? null;
-        if ($savedOrder) {
-            $this->sectionOrder = $savedOrder;
+        if (is_array($savedOrder) && count($savedOrder) > 0) {
+            // Приводим все значения к строкам для единообразия
+            $this->sectionOrder = array_map(function($s) {
+                return $s === 'coverages' ? 'coverages' : (string)$s;
+            }, $savedOrder);
         } else {
-            // Дефолтный: все группы + покрытия в конце
-            $this->sectionOrder = $p->fieldGroups->pluck('id')->toArray();
+            // Дефолтный: все группы (строковые id) + покрытия в конце
+            $this->sectionOrder = $p->fieldGroups->map(fn($g) => (string)$g->id)->toArray();
             $this->sectionOrder[] = 'coverages';
         }
 
@@ -494,8 +497,8 @@ class ProductForm extends Component
             }
             $this->fields = array_values($this->fields);
         }
-        // Удаляем из sectionOrder
-        $this->sectionOrder = array_values(array_filter($this->sectionOrder, fn($s) => $s !== $groupId));
+        // Удаляем из sectionOrder (сравниваем как строки)
+        $this->sectionOrder = array_values(array_filter($this->sectionOrder, fn($s) => (string)$s !== (string)$groupId));
         unset($this->fieldGroups[$index]);
         $this->fieldGroups = array_values($this->fieldGroups);
     }
@@ -935,15 +938,15 @@ class ProductForm extends Component
             }
         }
 
-        // Обновляем sectionOrder: заменяем temp_id на реальные id
+        // Обновляем sectionOrder: заменяем temp_id на реальные id (строки!)
         $updatedOrder = [];
         foreach ($this->sectionOrder as $s) {
             if ($s === 'coverages') {
                 $updatedOrder[] = 'coverages';
             } elseif (isset($groupMap[$s])) {
-                $updatedOrder[] = $groupMap[$s];
+                $updatedOrder[] = (string)$groupMap[$s];
             } else {
-                $updatedOrder[] = $s;
+                $updatedOrder[] = (string)$s;
             }
         }
         $this->sectionOrder = $updatedOrder;

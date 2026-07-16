@@ -29,8 +29,11 @@
                             @else
                                 @php
                                     $matchedGroup = null;
+                                    $sectionStr = (string)$section;
+                                    $sectionInt = is_numeric($section) ? intval($section) : null;
                                     foreach ($fieldGroups as $fg) {
-                                        if ((string)($fg['id'] ?? '') == (string)$section) {
+                                        $fgId = $fg['id'] ?? null;
+                                        if ($fgId !== null && ((string)$fgId === $sectionStr || $fgId === $sectionInt)) {
                                             $matchedGroup = $fg;
                                             break;
                                         }
@@ -39,7 +42,7 @@
                                 @if($matchedGroup)
                                     📁 {{ $matchedGroup['name'] }}
                                 @else
-                                    📁 <span class="text-gray-400 italic">Группа (сохраните продукт для обновления)</span>
+                                    📁 <span class="text-orange-500 italic">Группа — сохраните продукт для обновления</span>
                                 @endif
                             @endif
                         </span>
