@@ -103,10 +103,11 @@
                         <div class="space-y-2">
                             <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__currentLoopData = $restriction['conditions']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $cIndex => $condition): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                 <div class="flex items-center gap-2 bg-white rounded p-2">
-                                    <input type="text" 
-                                        wire:model.defer="orderRestrictions.<?php echo e($rIndex); ?>.conditions.<?php echo e($cIndex); ?>.field_code"
-                                        class="w-40 border border-gray-300 rounded px-2 py-1 text-sm"
-                                        placeholder="Поле (код)">
+                                    <?php echo $__env->make('livewire.products.partials.field-code-select', [
+                                        'inputName' => 'orderRestrictions.' . $rIndex . '.conditions.' . $cIndex . '.field_code',
+                                        'allFields' => $fields ?? [],
+                                        'allCoverages' => $coverages ?? [],
+                                    ], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
                                     <select wire:model.defer="orderRestrictions.<?php echo e($rIndex); ?>.conditions.<?php echo e($cIndex); ?>.operator"
                                         class="w-32 border border-gray-300 rounded px-2 py-1 text-sm">
                                         <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__currentLoopData = $operators; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $op => $label): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>

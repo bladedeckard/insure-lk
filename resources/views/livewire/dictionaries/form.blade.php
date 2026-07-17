@@ -109,7 +109,13 @@
                             <td class="p-2 text-center">{{ $it->is_active ? '✓' : '—' }}</td>
                             <td class="p-2 text-right space-x-2 text-xs">
                                 <button wire:click="editItem({{ $it->id }})" class="text-blue-600">Править</button>
-                                <button wire:click="deleteItem({{ $it->id }})" wire:confirm="Удалить элемент «{{ $it->label }}»?" class="text-rose-600">Удалить</button>
+                                <button onclick="confirmAction({
+                                    type: 'danger',
+                                    title: 'Удаление элемента',
+                                    message: 'Удалить элемент «{{ $it->label }}»?',
+                                    confirmText: 'Удалить',
+                                    onConfirm: function() { @this.call('deleteItem', {{ $it->id }}); }
+                                })" class="text-rose-600">Удалить</button>
                             </td>
                         </tr>
                         @empty

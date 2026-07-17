@@ -29,6 +29,8 @@ class PolicyForm extends Component
     public array $declarationAgreements = [];
     // Соглашения — согласия
     public array $agreementChecks = [];
+    // Ошибки ограничений
+    public array $restrictionErrors = [];
 
     public function getProduct(): ?Product
     {
@@ -50,6 +52,7 @@ class PolicyForm extends Component
     public function updated($field): void
     {
         if (str_starts_with($field, 'data.')) {
+            $this->restrictionErrors = [];
             $this->calculate();
         }
     }
@@ -186,9 +189,10 @@ class PolicyForm extends Component
      */
     public function issue(NumeratorService $num): mixed
     {
+        $this->restrictionErrors = [];
         $product = $this->getProduct();
         if (!$product) {
-            session()->flash('err', 'Выберите продукт');
+            $this->restrictionErrors[] = 'Выберите продукт';
             return null;
         }
 
@@ -220,7 +224,7 @@ class PolicyForm extends Component
         }
 
         if (!empty($errors)) {
-            session()->flash('err', implode('; ', $errors));
+            $this->restrictionErrors = $errors;
             return null;
         }
 
@@ -228,8 +232,7 @@ class PolicyForm extends Component
         $orderBlocked = $this->checkOrderRestrictions($product);
         $blocked = collect($orderBlocked)->where('action', 'block');
         if ($blocked->isNotEmpty()) {
-            $messages = $blocked->pluck('message')->implode('; ');
-            session()->flash('err', $messages);
+            $this->restrictionErrors = $blocked->pluck('message')->toArray();
             return null;
         }
 
@@ -241,7 +244,7 @@ class PolicyForm extends Component
         }
 
         if (!empty($calc['errors'])) {
-            session()->flash('err', 'Исправьте ошибки расчёта');
+            $this->restrictionErrors = ['Исправьте ошибки расчёта'];
             return null;
         }
 

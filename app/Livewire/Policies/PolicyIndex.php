@@ -1,14 +1,31 @@
 <?php
+
 namespace App\Livewire\Policies;
+
 use App\Models\Policy;
-use Livewire\Component; use Livewire\WithPagination;
-class PolicyIndex extends Component {
+use Livewire\Component;
+use Livewire\WithPagination;
+
+class PolicyIndex extends Component
+{
     use WithPagination;
-    public $search='';
-    public function render(){
+
+    public $search = '';
+
+    public function delete($id)
+    {
+        $policy = Policy::findOrFail($id);
+        $policy->delete();
+        session()->flash('ok', 'Полис удалён');
+    }
+
+    public function render()
+    {
         $items = Policy::with('product')
-          ->when($this->search, fn($q)=>$q->where('number','like',"%{$this->search}%"))
-          ->orderByDesc('id')->paginate(20);
+            ->when($this->search, fn($q) => $q->where('number', 'like', "%{$this->search}%"))
+            ->orderByDesc('id')
+            ->paginate(20);
+
         return view('livewire.policies.index', compact('items'));
     }
 }

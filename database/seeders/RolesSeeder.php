@@ -35,6 +35,7 @@ class RolesSeeder extends Seeder
             ['name' => 'policies.view', 'title_ru' => 'Просмотр полисов', 'group' => 'Полисы'],
             ['name' => 'policies.create', 'title_ru' => 'Создание полисов', 'group' => 'Полисы'],
             ['name' => 'policies.manage_all', 'title_ru' => 'Управление всеми полисами', 'group' => 'Полисы'],
+            ['name' => 'policies.delete', 'title_ru' => 'Удаление полисов', 'group' => 'Полисы'],
         ];
 
         foreach ($perms as $p) {
@@ -53,7 +54,7 @@ class RolesSeeder extends Seeder
             'chief_manager' => [
                 'title_ru' => 'Главный менеджер страховой компании',
                 'description' => 'Доступ к просмотру и созданию пользователей, страховых продуктов и полисов',
-                'permissions' => ['users.view','users.manage','products.view','products.manage','policies.view','policies.create','policies.manage_all','intermediaries.view'],
+                'permissions' => ['users.view','users.manage','products.view','products.manage','policies.view','policies.create','policies.manage_all','policies.delete','intermediaries.view'],
             ],
             'manager' => [
                 'title_ru' => 'Менеджер страховой компании',

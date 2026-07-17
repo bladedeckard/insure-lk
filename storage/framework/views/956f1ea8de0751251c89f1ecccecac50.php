@@ -11,6 +11,48 @@
         </div>
     </div>
 
+    
+    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(!empty($sectionOrder)): ?>
+        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+            <h3 class="text-sm font-semibold text-yellow-800 mb-2">📋 Порядок секций в форме полиса</h3>
+            <p class="text-xs text-yellow-700 mb-3">Перемещайте секции стрелками. Этот порядок будет в форме создания полиса.</p>
+            <div class="space-y-1">
+                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__currentLoopData = $sectionOrder; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $sIdx => $section): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                    <div class="flex items-center gap-2 bg-white rounded p-2 border border-yellow-100">
+                        <div class="flex flex-col gap-0.5">
+                            <button wire:click="moveSectionUp(<?php echo e($sIdx); ?>)" class="text-gray-300 hover:text-gray-600 text-xs">▲</button>
+                            <button wire:click="moveSectionDown(<?php echo e($sIdx); ?>)" class="text-gray-300 hover:text-gray-600 text-xs">▼</button>
+                        </div>
+                        <span class="text-sm font-medium text-gray-700">
+                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($section === 'coverages'): ?>
+                                📦 Покрытия и страховые суммы
+                            <?php else: ?>
+                                <?php
+                                    $matchedGroup = null;
+                                    $sectionStr = (string)$section;
+                                    $sectionInt = is_numeric($section) ? intval($section) : null;
+                                    foreach ($fieldGroups as $fg) {
+                                        $fgId = $fg['id'] ?? null;
+                                        if ($fgId !== null && ((string)$fgId === $sectionStr || $fgId === $sectionInt)) {
+                                            $matchedGroup = $fg;
+                                            break;
+                                        }
+                                    }
+                                ?>
+                                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($matchedGroup): ?>
+                                    📁 <?php echo e($matchedGroup['name']); ?>
+
+                                <?php else: ?>
+                                    📁 <span class="text-orange-500 italic">Группа — сохраните продукт для обновления</span>
+                                <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                        </span>
+                    </div>
+                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+            </div>
+        </div>
+    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+
     <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(empty($fieldGroups) && empty($fields)): ?>
         <div class="text-center py-12 text-gray-400">
             <svg class="mx-auto h-12 w-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -37,6 +79,11 @@
                 <div class="border border-blue-200 bg-blue-50 rounded-lg p-4">
                     <div class="flex justify-between items-center mb-3">
                         <div class="flex items-center gap-3">
+                            
+                            <div class="flex flex-col gap-0.5">
+                                <button wire:click="moveGroupUp(<?php echo e($gIndex); ?>)" class="text-gray-300 hover:text-gray-600 text-xs" title="Вверх">▲</button>
+                                <button wire:click="moveGroupDown(<?php echo e($gIndex); ?>)" class="text-gray-300 hover:text-gray-600 text-xs" title="Вниз">▼</button>
+                            </div>
                             <input type="text" wire:model.defer="fieldGroups.<?php echo e($gIndex); ?>.name"
                                 class="font-semibold text-gray-800 border-none bg-transparent focus:ring-0 text-base">
                             <span class="text-xs text-gray-400"><?php echo e($group['code'] ?? ''); ?></span>

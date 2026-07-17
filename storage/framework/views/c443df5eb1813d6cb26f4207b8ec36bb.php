@@ -7,7 +7,7 @@
         </div>
     <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
     <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(session()->has('err')): ?>
-        <div class="fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-50">
+        <div class="fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 max-w-lg">
             <?php echo e(session('err')); ?>
 
         </div>
@@ -34,7 +34,7 @@
                 
                 <div class="bg-white rounded-lg shadow p-6">
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Страховой продукт *</label>
-                    <select wire:model="product_id"
+                    <select wire:model.live="product_id"
                         class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500">
                         <option value="">— выберите —</option>
                         <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__currentLoopData = $products; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $pr): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
@@ -74,19 +74,129 @@
                     <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
                     
-                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__currentLoopData = $fieldGroups; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $group): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                        <div class="bg-white rounded-lg shadow p-6">
-                            <h2 class="text-lg font-semibold text-gray-800 mb-4"><?php echo e($group->name); ?></h2>
-                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($group->description): ?>
-                                <p class="text-sm text-gray-500 mb-4"><?php echo e($group->description); ?></p>
+                    <?php
+                        $cfgJson = $product->config_json ?? [];
+                        $rawOrder = $cfgJson['section_order'] ?? null;
+
+                        // Строим нормализованный sectionOrder
+                        $sectionOrder = [];
+                        if (is_array($rawOrder) && count($rawOrder) > 0) {
+                            foreach ($rawOrder as $s) {
+                                if ($s === 'coverages') {
+                                    $sectionOrder[] = ['type' => 'coverages'];
+                                } else {
+                                    // Ищем группу по id (loose comparison)
+                                    $found = null;
+                                    foreach ($fieldGroups as $fg) {
+                                        if ($fg->id == $s) {
+                                            $found = $fg;
+                                            break;
+                                        }
+                                    }
+                                    if ($found) {
+                                        $sectionOrder[] = ['type' => 'group', 'group' => $found];
+                                    }
+                                }
+                            }
+                        }
+
+                        // Если sectionOrder пустой — дефолтный: группы + покрытия в конце
+                        if (empty($sectionOrder)) {
+                            foreach ($fieldGroups as $fg) {
+                                $sectionOrder[] = ['type' => 'group', 'group' => $fg];
+                            }
+                            $sectionOrder[] = ['type' => 'coverages'];
+                        }
+
+                        // Проверяем что все группы учтены (на случай если sectionOrder устарел)
+                        $renderedGroupIds = [];
+                        foreach ($sectionOrder as $sec) {
+                            if ($sec['type'] === 'group') {
+                                $renderedGroupIds[] = $sec['group']->id;
+                            }
+                        }
+                        foreach ($fieldGroups as $fg) {
+                            if (!in_array($fg->id, $renderedGroupIds)) {
+                                $sectionOrder[] = ['type' => 'group', 'group' => $fg];
+                            }
+                        }
+                    ?>
+
+                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__currentLoopData = $sectionOrder; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $section): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($section['type'] === 'coverages'): ?>
+                            
+                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($coverages->isNotEmpty()): ?>
+                                <div class="bg-white rounded-lg shadow p-6">
+                                    <h2 class="text-lg font-semibold text-gray-800 mb-4">Покрытия и страховые суммы</h2>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__currentLoopData = $coverages; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $cov): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700 mb-1">
+                                                    <?php echo e($cov->name); ?>
+
+                                                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($cov->required_for_calc): ?>
+                                                        <span class="text-red-500">*</span>
+                                                    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                                                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(!empty($cov->risks)): ?>
+                                                        <span class="text-xs text-gray-400">(<?php echo e(count($cov->risks)); ?> рисков)</span>
+                                                    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                                                </label>
+
+                                                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($cov->type === 'range'): ?>
+                                                    <input type="number"
+                                                        wire:model.live="data.<?php echo e($cov->code); ?>"
+                                                        min="<?php echo e($cov->min_value ?? 0); ?>"
+                                                        max="<?php echo e($cov->max_value); ?>"
+                                                        class="w-full border border-gray-300 rounded-lg px-3 py-2"
+                                                        placeholder="от <?php echo e(number_format($cov->min_value ?? 0)); ?> до <?php echo e(number_format($cov->max_value ?? 0)); ?>">
+                                                    <p class="text-xs text-gray-400 mt-1">
+                                                        <?php echo e(number_format($cov->min_value ?? 0)); ?> — <?php echo e(number_format($cov->max_value ?? 0)); ?> ₽
+                                                        · По умолч.: <?php echo e(number_format($cov->default_value ?? 0)); ?> ₽
+                                                    </p>
+
+                                                <?php elseif($cov->type === 'constant'): ?>
+                                                    <div class="px-3 py-2 bg-gray-100 rounded-lg text-sm">
+                                                        <?php echo e(number_format($cov->default_value ?? 0)); ?> ₽ (фиксировано)
+                                                    </div>
+
+                                                <?php elseif($cov->type === 'set'): ?>
+                                                    <select wire:model.live="data.<?php echo e($cov->code); ?>"
+                                                        class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                                                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__currentLoopData = $cov->set_values ?? []; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $val): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                                            <option value="<?php echo e($val); ?>"><?php echo e(number_format($val)); ?> ₽</option>
+                                                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                                                    </select>
+
+                                                <?php elseif($cov->type === 'flag'): ?>
+                                                    <label class="flex items-center gap-2 cursor-pointer">
+                                                        <input type="checkbox"
+                                                            wire:model.live="data.<?php echo e($cov->code); ?>"
+                                                            class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                                        <span class="text-sm text-gray-700">Да</span>
+                                                    </label>
+                                                <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                                            </div>
+                                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                                    </div>
+                                </div>
                             <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__currentLoopData = $fields->where('group_id', $group->id); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $field): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                                    <?php echo $__env->make('livewire.policies.partials.field-render', ['field' => $field], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
-                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                        <?php elseif($section['type'] === 'group'): ?>
+                            
+                            <?php $group = $section['group']; ?>
+                            <div class="bg-white rounded-lg shadow p-6">
+                                <h2 class="text-lg font-semibold text-gray-800 mb-4"><?php echo e($group->name); ?></h2>
+                                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($group->description): ?>
+                                    <p class="text-sm text-gray-500 mb-4"><?php echo e($group->description); ?></p>
+                                <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__currentLoopData = $fields->where('group_id', $group->id); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $field): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                        <?php echo $__env->make('livewire.policies.partials.field-render', ['field' => $field, 'product' => $product], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+                                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                                </div>
                             </div>
-                        </div>
+                        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                     <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
                     
@@ -96,67 +206,7 @@
                             <h2 class="text-lg font-semibold text-gray-800 mb-4">Дополнительные поля</h2>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__currentLoopData = $ungroupedFields; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $field): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                                    <?php echo $__env->make('livewire.policies.partials.field-render', ['field' => $field], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
-                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
-                            </div>
-                        </div>
-                    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
-
-                    
-                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($coverages->isNotEmpty()): ?>
-                        <div class="bg-white rounded-lg shadow p-6">
-                            <h2 class="text-lg font-semibold text-gray-800 mb-4">Покрытия и страховые суммы</h2>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__currentLoopData = $coverages; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $cov): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">
-                                            <?php echo e($cov->name); ?>
-
-                                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($cov->required_for_calc): ?>
-                                                <span class="text-red-500">*</span>
-                                            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
-                                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(!empty($cov->risks)): ?>
-                                                <span class="text-xs text-gray-400">(<?php echo e(count($cov->risks)); ?> рисков)</span>
-                                            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
-                                        </label>
-
-                                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($cov->type === 'range'): ?>
-                                            <input type="number"
-                                                wire:model.defer="data.<?php echo e($cov->code); ?>"
-                                                wire:change="calculate"
-                                                min="<?php echo e($cov->min_value ?? 0); ?>"
-                                                max="<?php echo e($cov->max_value); ?>"
-                                                class="w-full border border-gray-300 rounded-lg px-3 py-2"
-                                                placeholder="от <?php echo e(number_format($cov->min_value ?? 0)); ?> до <?php echo e(number_format($cov->max_value ?? 0)); ?>">
-                                            <p class="text-xs text-gray-400 mt-1">
-                                                <?php echo e(number_format($cov->min_value ?? 0)); ?> — <?php echo e(number_format($cov->max_value ?? 0)); ?> ₽
-                                                · По умолч.: <?php echo e(number_format($cov->default_value ?? 0)); ?> ₽
-                                            </p>
-
-                                        <?php elseif($cov->type === 'constant'): ?>
-                                            <div class="px-3 py-2 bg-gray-100 rounded-lg text-sm">
-                                                <?php echo e(number_format($cov->default_value ?? 0)); ?> ₽ (фиксировано)
-                                            </div>
-
-                                        <?php elseif($cov->type === 'set'): ?>
-                                            <select wire:model.defer="data.<?php echo e($cov->code); ?>"
-                                                wire:change="calculate"
-                                                class="w-full border border-gray-300 rounded-lg px-3 py-2">
-                                                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__currentLoopData = $cov->set_values ?? []; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $val): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                                                    <option value="<?php echo e($val); ?>"><?php echo e(number_format($val)); ?> ₽</option>
-                                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
-                                            </select>
-
-                                        <?php elseif($cov->type === 'flag'): ?>
-                                            <label class="flex items-center gap-2 cursor-pointer">
-                                                <input type="checkbox"
-                                                    wire:model.defer="data.<?php echo e($cov->code); ?>"
-                                                    wire:change="calculate"
-                                                    class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-                                                <span class="text-sm text-gray-700">Да</span>
-                                            </label>
-                                        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
-                                    </div>
+                                    <?php echo $__env->make('livewire.policies.partials.field-render', ['field' => $field, 'product' => $product], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
                                 <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                             </div>
                         </div>
@@ -175,7 +225,7 @@
                                         <?php echo e($agreement->text); ?>
 
                                         <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($agreement->required): ?>
-                                            <span class="text-red-500 font-semibold">*</span>
+                                            <span class="text-red-500 font-semibold">* обязательно</span>
                                         <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                     </span>
                                 </label>

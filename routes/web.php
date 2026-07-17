@@ -15,11 +15,16 @@ use App\Livewire\Dictionaries\DictionaryIndex;
 use App\Livewire\Dictionaries\DictionaryForm;
 use App\Livewire\Roles\RoleIndex;
 use App\Livewire\Roles\RoleForm;
+use App\Livewire\Users\UserProfile;
 
 Route::get('/', fn()=>redirect()->route('dashboard'));
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', fn()=>view('dashboard'))->name('dashboard');
+
+    // Profile
+    Route::get('/profile', UserProfile::class)->name('profile.show');
+    Route::get('/profile/{id}', UserProfile::class)->name('profile.user');
 
     Route::middleware('can:users.view')->group(function(){
         Route::get('/users', UserIndex::class)->name('users.index');

@@ -1,4 +1,20 @@
 
+<?php
+    $isStartDateField = ($field->code === 'start_date');
+    $dateMin = null;
+    $dateDisabled = false;
+
+    if ($isStartDateField && isset($product)) {
+        // [3] Минимальная дата = сегодня + period_start_days
+        $dateMin = now()->addDays($product->period_start_days ?? 0)->format('Y-m-d');
+        
+        // [2] Если редактирование даты запрещено
+        if (!$product->allow_edit_start_date) {
+            $dateDisabled = true;
+        }
+    }
+?>
+
 <div class="<?php echo e(in_array($field->type, ['textarea', 'address']) ? 'md:col-span-2' : ''); ?>">
     <label class="block text-sm font-medium text-gray-700 mb-1">
         <?php echo e($field->name); ?>
@@ -26,21 +42,31 @@
 
         <?php case ('number'): ?>
             <input type="number"
-                wire:model.defer="data.<?php echo e($field->code); ?>"
-                wire:change="calculate"
+                wire:model.live.debounce.500ms="data.<?php echo e($field->code); ?>"
                 class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
                 placeholder="<?php echo e($field->hint ?? '0'); ?>">
             <?php break; ?>
 
         <?php case ('date'): ?>
             <input type="date"
-                wire:model.defer="data.<?php echo e($field->code); ?>"
-                class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500">
+                wire:model.live="data.<?php echo e($field->code); ?>"
+                <?php if($dateMin): ?> min="<?php echo e($dateMin); ?>" <?php endif; ?>
+                <?php if($dateDisabled): ?> disabled <?php endif; ?>
+                class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500
+                    <?php echo e($dateDisabled ? 'bg-gray-100 cursor-not-allowed' : ''); ?>">
+            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($isStartDateField && isset($product)): ?>
+                <p class="text-xs text-gray-400 mt-1">
+                    Минимальная дата: <?php echo e(now()->addDays($product->period_start_days ?? 0)->format('d.m.Y')); ?>
+
+                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(!$product->allow_edit_start_date): ?>
+                        · <span class="text-orange-600">Дата устанавливается автоматически</span>
+                    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                </p>
+            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
             <?php break; ?>
 
         <?php case ('select'): ?>
-            <select wire:model.defer="data.<?php echo e($field->code); ?>"
-                wire:change="calculate"
+            <select wire:model.live="data.<?php echo e($field->code); ?>"
                 class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500">
                 <option value="">— выберите —</option>
                 <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__currentLoopData = $field->options ?? []; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $opt): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
@@ -52,8 +78,7 @@
         <?php case ('checkbox'): ?>
             <label class="flex items-center gap-2 cursor-pointer mt-1">
                 <input type="checkbox"
-                    wire:model.defer="data.<?php echo e($field->code); ?>"
-                    wire:change="calculate"
+                    wire:model.live="data.<?php echo e($field->code); ?>"
                     class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
                 <span class="text-sm text-gray-700">Да</span>
             </label>
@@ -79,7 +104,7 @@
                 maxlength="5"
                 class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
                 placeholder="XX XX">
-            <p class="text-xs text-gray-400 mt-1">Формат: XX XX (последние 2 цифры ≤ <?php echo e(date('y')); ?>)</p>
+            <p class="text-xs text-gray-400 mt-1">Формат: XX XX</p>
             <?php break; ?>
 
         <?php case ('passport_number'): ?>
@@ -92,8 +117,7 @@
 
         <?php case ('birthdate'): ?>
             <input type="date"
-                wire:model.defer="data.<?php echo e($field->code); ?>"
-                wire:change="calculate"
+                wire:model.live="data.<?php echo e($field->code); ?>"
                 max="<?php echo e(now()->subYears(18)->format('Y-m-d')); ?>"
                 class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500">
             <?php break; ?>
@@ -121,8 +145,8 @@
             <div class="space-y-2">
                 <label class="flex items-center gap-2 cursor-pointer text-sm">
                     <input type="checkbox"
-                        class="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
-                        data-linked="<?php echo e($field->linked_to); ?>"
+                        class="rounded border-gray-300 text-purple-600 focus:ring-purple-500 linked-field-toggle"
+                        data-source="<?php echo e($field->linked_to); ?>"
                         data-target="<?php echo e($field->code); ?>">
                     <span class="text-purple-700">↔ Совпадает с «<?php echo e($field->linked_to); ?>»</span>
                 </label>

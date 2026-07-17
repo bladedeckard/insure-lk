@@ -13,34 +13,11 @@
                     <div class="flex flex-wrap gap-1">
                         @foreach($categoryVars as $varCode => $varLabel)
                             <button type="button"
-                                x-data="{ copied: false }"
-                                x-on:click="
-                                    let text = '$' + '{' + '{{ $varCode }}' + '}';
-                                    let el = $el;
-                                    if (navigator.clipboard && window.isSecureContext) {
-                                        navigator.clipboard.writeText(text).then(() => {
-                                            el.dataset.copied = '1';
-                                            setTimeout(() => { el.dataset.copied = '0'; }, 1500);
-                                        });
-                                    } else {
-                                        let ta = document.createElement('textarea');
-                                        ta.value = text;
-                                        ta.style.cssText = 'position:fixed;left:-9999px';
-                                        document.body.appendChild(ta);
-                                        ta.select();
-                                        document.execCommand('copy');
-                                        document.body.removeChild(ta);
-                                        el.dataset.copied = '1';
-                                        setTimeout(() => { el.dataset.copied = '0'; }, 1500);
-                                    }
-                                "
-                                :class="dataset.copied === '1' ? 'bg-green-50 border-green-400' : 'bg-white border-yellow-200 hover:bg-yellow-100 hover:border-yellow-400'"
-                                class="inline-flex items-center gap-1 px-2 py-1 rounded border text-xs cursor-pointer transition-colors"
+                                onclick="copyVar(this, '{{ $varCode }}')"
+                                class="copy-btn inline-flex items-center gap-1 px-2 py-1 rounded border text-xs cursor-pointer transition-colors bg-white border-yellow-200 hover:bg-yellow-100 hover:border-yellow-400"
                                 title="Нажмите чтобы скопировать">
-                                <code class="font-semibold" :class="dataset.copied === '1' ? 'text-green-600' : 'text-blue-600'">
-                                    <span x-show="dataset.copied !== '1'">{{ '$' }}{{ '{' . $varCode . '}' }}</span>
-                                    <span x-show="dataset.copied === '1'" x-cloak>✅ Скопировано!</span>
-                                </code>
+                                <code class="font-semibold text-blue-600 copy-label">{{ '$' }}{{ '{' . $varCode . '}' }}</code>
+                                <span class="text-green-600 copy-ok hidden">Скопировано!</span>
                                 <span class="text-gray-400">— {{ $varLabel }}</span>
                             </button>
                         @endforeach

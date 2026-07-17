@@ -1412,3 +1412,4 @@
 #62 A:/XAMPP/htdocs/insure-lk/public/index.php(9): Illuminate/Foundation/Application->handleRequest(Object(Illuminate/Http/Request))
 #63 {main}
 "} 
+[2026-07-12 03:19:22] local.WARNING: Mail failed: Expected response code "250/251/252" but got code "535", with message "535 5.7.0 NEOBHODIM parol prilozheniya https://help.mail.ru/mail/security/protection/external / Application password is REQUIRED".  
