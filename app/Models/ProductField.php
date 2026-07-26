@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class ProductField extends Model
 {
@@ -29,6 +30,44 @@ class ProductField extends Model
     public function group(): BelongsTo
     {
         return $this->belongsTo(ProductFieldGroup::class, 'group_id');
+    }
+
+    /**
+     * Покрытия, к которым привязано это поле (pivot).
+     * Если пусто — поле показывается всегда.
+     */
+    public function coverages(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            ProductCoverage::class,
+            'product_field_coverages',
+            'product_field_id',
+            'product_coverage_id'
+        );
+    }
+
+    /**
+     * Проверить, привязано ли поле к какому-либо покрытию.
+     */
+    public function hasCoverageBinding(): bool
+    {
+        return $this->coverages()->exists();
+    }
+
+    /**
+     * Проверить, есть ли расширенные условия видимости.
+     */
+    public function hasVisibilityCondition(): bool
+    {
+        return !empty($this->visibility_condition);
+    }
+
+    /**
+     * Поле показывается всегда (нет привязок и нет условий).
+     */
+    public function isAlwaysVisible(): bool
+    {
+        return !$this->hasCoverageBinding() && !$this->hasVisibilityCondition();
     }
 
     public function getTypeLabel(): string

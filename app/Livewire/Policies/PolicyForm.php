@@ -4,12 +4,13 @@ namespace App\Livewire\Policies;
 
 use App\Models\Policy;
 use App\Models\Product;
+use App\Models\Bank;
 use App\Models\Numerator;
 use App\Services\NumeratorService;
 use App\Services\FormulaCalculator;
 use App\Services\ConditionCheckerService;
+use App\Services\FieldVisibilityService;
 use App\Services\DadataService;
-use App\Models\Bank;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 use Carbon\Carbon;
@@ -27,32 +28,39 @@ class PolicyForm extends Component
     public string $policyholder_email = '';
     public string $policyholder_phone = '';
 
-    // Intermediary
-    public ?int $intermediary_id = null;
-    public float $kv_percent = 0;
-
-    // Promocode and markup (mutually exclusive)
-    public string $promocode = '';
-    public float $markup_percent = 0;
-
-    // Calculation detail popup
-    public bool $showCalcDetail = false;
-
-    // Declarations
-    public array $declarationAgreements = [];
-    // Agreements
-    public array $agreementChecks = [];
     // Restriction errors
     public array $restrictionErrors = [];
 
+    // Promocode and markup
+    public string $promocode = '';
+    public float $markup_percent = 0;
+
+    // Intermediary and KV
+    public ?int $intermediary_id = null;
+    public float $kv_percent = 0;
+
+    // Declarations and agreements
+    public array $declarationAgreements = [];
+    public array $agreementChecks = [];
+
     // DaData address suggestions
-    public array $addressSuggestions = [];
     public string $addressQuery = '';
+    public array $addressSuggestions = [];
+    public bool $showCalcDetail = false;
 
     public function getProduct(): ?Product
     {
         if (!$this->product_id) return null;
-        return Product::with(['coverages', 'fields.group', 'fieldGroups', 'restrictions.conditions', 'agreements', 'declarations', 'documents'])->find($this->product_id);
+        return Product::with([
+            'coverages',
+            'fields.group',
+            'fields.coverages',
+            'fieldGroups',
+            'restrictions.conditions',
+            'agreements',
+            'declarations',
+            'documents'
+        ])->find($this->product_id);
     }
 
     public function updatedProductId(): void
@@ -77,7 +85,7 @@ class PolicyForm extends Component
     public function updatedPromocode(): void
     {
         if (!empty($this->promocode)) {
-            $this->markup_percent = 0; // Clear markup when promo is entered
+            $this->markup_percent = 0;
         }
         $this->calculate();
     }
@@ -85,14 +93,14 @@ class PolicyForm extends Component
     public function updatedMarkupPercent(): void
     {
         if ($this->markup_percent > 0) {
-            $this->promocode = ''; // Clear promo when markup is entered
+            $this->promocode = '';
         }
         $this->calculate();
     }
 
     public function updatedIntermediaryId(): void
     {
-        $this->kv_percent = 0; // Reset KV when intermediary changes
+        $this->kv_percent = 0;
         $this->calculate();
     }
 
@@ -373,6 +381,12 @@ class PolicyForm extends Component
             'declarations' => $product ? $product->declarations()->where('is_active', true)->get() : collect(),
             'banks' => Bank::where('is_active', true)->orderBy('name')->get(),
             'intermediaries' => \App\Models\Intermediary::where('is_active', true)->orderBy('name')->get(),
+            'visibilityMap' => $product ? app(FieldVisibilityService::class)->buildVisibilityMap($product) : [],
+            'showCalcDetail' => $this->showCalcDetail,
         ]);
+    }
+        public function toggleCalcDetail(): void
+    {
+        $this->showCalcDetail = !$this->showCalcDetail;
     }
 }

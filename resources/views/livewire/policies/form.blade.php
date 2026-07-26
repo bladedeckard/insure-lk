@@ -1,3 +1,5 @@
+@include('livewire.policies.partials.alpine-visibility')
+
 <div>
     {{-- Floating restriction errors --}}
     @if(!empty($restrictionErrors))
@@ -267,7 +269,7 @@
                             @if($unrowedFields->isNotEmpty())
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
                                     @foreach($unrowedFields as $field)
-                                        @include('livewire.policies.partials.field-render', ['field' => $field, 'product' => $product, 'data' => $data])
+                                        @include('livewire.policies.partials.field-render', ['field' => $field, 'product' => $product, 'data' => $data, 'visibilityMap' => $visibilityMap ?? []])
                                     @endforeach
                                 </div>
                             @endif
@@ -277,7 +279,7 @@
                                 @if($rowFields->isNotEmpty())
                                     <div class="grid grid-cols-1 md:grid-cols-{{ $row['cols'] ?? 2 }} gap-6 {{ !$loop->last ? 'mb-4' : '' }}">
                                         @foreach($rowFields as $field)
-                                            @include('livewire.policies.partials.field-render', ['field' => $field, 'product' => $product, 'data' => $data])
+                                            @include('livewire.policies.partials.field-render', ['field' => $field, 'product' => $product, 'data' => $data, 'visibilityMap' => $visibilityMap ?? []])
                                         @endforeach
                                     </div>
                                 @endif
@@ -293,7 +295,7 @@
                         <h2 class="text-xl font-bold text-slate-900 mb-4">Дополнительные поля</h2>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             @foreach($ungroupedFields as $field)
-                                @include('livewire.policies.partials.field-render', ['field' => $field, 'product' => $product, 'data' => $data])
+                                @include('livewire.policies.partials.field-render', ['field' => $field, 'product' => $product, 'data' => $data, 'visibilityMap' => $visibilityMap ?? []])
                             @endforeach
                         </div>
                     </div>
