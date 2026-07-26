@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>{{ $title ?? 'Insure LK' }}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -21,37 +21,65 @@
     </script>
     @livewireStyles
     <style>
+        [x-cloak] { display: none !important; }
         .sidebar-link.active { background: rgba(99,102,241,0.15); color: #818cf8; }
         .sidebar-link.active svg { color: #818cf8; }
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-        /* Sidebar collapsed */
         body.sidebar-collapsed .sidebar-text { display: none; }
         body.sidebar-collapsed aside { width: 5rem !important; }
         body.sidebar-collapsed #main-content { margin-left: 5rem !important; }
         body.sidebar-collapsed .sidebar-chevron { display: none; }
-        /* Dropdown */
         .dropdown-menu { display: none; }
         .dropdown-menu.show { display: block; }
-        /* Submenu */
         .submenu { display: none; }
         .submenu.open { display: block; }
         .submenu-toggle .chevron { transition: transform 0.2s; }
         .submenu-toggle.open .chevron { transform: rotate(180deg); }
-        /* Flash */
         .flash-msg { transition: opacity 0.3s, transform 0.3s; }
         .flash-msg.hidden { opacity: 0; transform: translateY(-8px); pointer-events: none; }
+
+        /* Element Plus-inspired form system */
+        :root {
+            --el-color-primary: #4f46e5;
+            --el-color-primary-light-3: rgba(79, 70, 229, 0.3);
+            --el-color-primary-light-5: rgba(79, 70, 229, 0.15);
+            --el-color-success: #67c23a;
+            --el-color-warning: #e6a23c;
+            --el-color-danger: #f56c6c;
+            --el-border-color: #dcdfe6;
+            --el-border-color-hover: #c0c4cc;
+            --el-text-color-primary: #303133;
+            --el-text-color-regular: #606266;
+            --el-text-color-placeholder: #a8abb2;
+            --el-bg-color: #ffffff;
+            --el-bg-color-page: #f5f7fa;
+            --el-font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            --el-border-radius-base: 6px;
+        }
+
+        /* Font override for form elements */
+        input, select, textarea, label { font-family: var(--el-font-family); }
+
+        /* Uniform checkbox styling */
+        input[type="checkbox"], .el-checkbox {
+            -webkit-appearance: none; -moz-appearance: none; appearance: none;
+            width: 18px; height: 18px;
+            border: 2px solid #d1d5db; border-radius: 5px;
+            background-color: #fff; cursor: pointer;
+            transition: all 0.15s ease; position: relative; flex-shrink: 0;
+        }
+        input[type="checkbox"]:hover, .el-checkbox:hover { border-color: #818cf8; }
+        input[type="checkbox"]:checked, .el-checkbox:checked { background-color: #4f46e5; border-color: #4f46e5; }
+        input[type="checkbox"]:checked::after, .el-checkbox:checked::after { content: '✓'; position: absolute; left: 2px; top: -2px; color: #fff; font-size: 14px; font-weight: bold; }
+        input[type="checkbox"]:focus, .el-checkbox:focus { outline: none; box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2); }
     </style>
 </head>
 <body class="bg-gray-50 font-sans text-gray-800 antialiased">
 <div class="flex min-h-screen">
-
-    {{-- Sidebar --}}
     <aside class="fixed inset-y-0 left-0 z-30 w-64 flex flex-col transition-all duration-300"
            style="background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);">
-
-        {{-- Logo --}}
         <div class="flex items-center gap-3 px-5 h-16 border-b border-white/10 flex-shrink-0">
             <div class="w-9 h-9 rounded-lg bg-primary-500 flex items-center justify-center flex-shrink-0">
                 <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -60,8 +88,6 @@
             </div>
             <span class="sidebar-text text-white font-semibold text-lg tracking-tight whitespace-nowrap">Insure LK</span>
         </div>
-
-        {{-- Navigation --}}
         <nav class="flex-1 overflow-y-auto py-4 px-3 space-y-1">
             <a href="{{ route('dashboard') }}"
                class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
@@ -71,7 +97,6 @@
                 </svg>
                 <span class="sidebar-text">Дашборд</span>
             </a>
-
             <a href="{{ route('policies.index') }}"
                class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
                       {{ request()->routeIs('policies.*') ? 'active' : 'text-slate-400 hover:text-white hover:bg-white/5' }}">
@@ -80,7 +105,6 @@
                 </svg>
                 <span class="sidebar-text">Полисы</span>
             </a>
-
             @can('products.view')
             <a href="{{ route('products.index') }}"
                class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
@@ -91,7 +115,6 @@
                 <span class="sidebar-text">Продукты</span>
             </a>
             @endcan
-
             @can('users.view')
             <div class="mt-2">
                 <button onclick="toggleSubmenu(this)" class="submenu-toggle flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors w-full
@@ -110,11 +133,9 @@
                 </div>
             </div>
             @endcan
-
             <div class="pt-4 pb-2 px-3">
                 <p class="sidebar-text text-[11px] font-semibold uppercase tracking-wider text-slate-500">Настройки</p>
             </div>
-
             @can('roles.view')
             <a href="{{ route('roles.index') }}"
                class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
@@ -125,7 +146,6 @@
                 <span class="sidebar-text">Роли и права</span>
             </a>
             @endcan
-
             @can('numerators.view')
             <a href="{{ route('numerators.index') }}"
                class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
@@ -136,7 +156,6 @@
                 <span class="sidebar-text">Нумераторы</span>
             </a>
             @endcan
-
             @can('dictionaries.view')
             <a href="{{ route('dictionaries.index') }}"
                class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
@@ -147,9 +166,38 @@
                 <span class="sidebar-text">Словари</span>
             </a>
             @endcan
+            @can('products.view')
+            <div class="pt-4 pb-2 px-3">
+                <p class="sidebar-text text-[11px] font-semibold uppercase tracking-wider text-slate-500">Страхование</p>
+            </div>
+            <a href="{{ route('product-types.index') }}"
+               class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
+                      {{ request()->routeIs('product-types.*') ? 'active' : 'text-slate-400 hover:text-white hover:bg-white/5' }}">
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 6h.008v.008H6V6z"/>
+                </svg>
+                <span class="sidebar-text">Типы продуктов</span>
+            </a>
+            <a href="{{ route('banks.index') }}"
+               class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
+                      {{ request()->routeIs('banks.*') ? 'active' : 'text-slate-400 hover:text-white hover:bg-white/5' }}">
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6m-1.5 12V10.332A48.36 48.36 0 0012 9.75c-2.551 0-5.056.2-7.5.582V21M3 21h18M12 6.75h.008v.008H12V6.75z"/>
+                </svg>
+                <span class="sidebar-text">Банки</span>
+            </a>
+            <a href="{{ route('promocodes.index') }}"
+               class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
+                      {{ request()->routeIs('promocodes.*') ? 'active' : 'text-slate-400 hover:text-white hover:bg-white/5' }}">
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 6h.008v.008H6V6z"/>
+                </svg>
+                <span class="sidebar-text">Промокоды</span>
+            </a>
+            @endcan
         </nav>
-
-        {{-- User block --}}
         <div class="border-t border-white/10 p-3 flex-shrink-0">
             <div class="flex items-center gap-3 px-2 py-2">
                 <div class="w-9 h-9 rounded-full bg-primary-500/20 flex items-center justify-center flex-shrink-0">
@@ -162,11 +210,7 @@
             </div>
         </div>
     </aside>
-
-    {{-- Main content --}}
     <div id="main-content" class="flex-1 ml-64 transition-all duration-300">
-
-        {{-- Top header --}}
         <header class="sticky top-0 z-20 bg-white border-b border-gray-200 h-16 flex items-center justify-between px-6 shadow-sm">
             <div class="flex items-center gap-4">
                 <button onclick="toggleSidebar()" class="p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-500">
@@ -175,244 +219,455 @@
                     </svg>
                 </button>
             </div>
-
             <div class="flex items-center gap-3">
-                {{-- Notifications bell --}}
-                <button class="p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-500 relative">
-                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/>
-                    </svg>
-                </button>
-
-                {{-- User dropdown --}}
+                @if(session('ok'))
+                    <div id="flash-ok" class="flash-msg fixed top-20 right-6 z-50 bg-green-50 border border-green-200 rounded-xl shadow-lg p-4 flex items-center gap-3 max-w-sm">
+                        <div class="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-5 h-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+                        </div>
+                        <span class="text-sm text-green-700">{{ session('ok') }}</span>
+                        <button onclick="document.getElementById('flash-ok').classList.add('hidden')" class="text-green-400 hover:text-green-600 ml-auto"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button>
+                    </div>
+                @endif
+                @if(session('err'))
+                    <div id="flash-err" class="flash-msg fixed top-20 right-6 z-50 bg-red-50 border border-red-200 rounded-xl shadow-lg p-4 flex items-center gap-3 max-w-sm">
+                        <div class="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-5 h-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/></svg>
+                        </div>
+                        <span class="text-sm text-red-700">{{ session('err') }}</span>
+                        <button onclick="document.getElementById('flash-err').classList.add('hidden')" class="text-red-400 hover:text-red-600 ml-auto"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button>
+                    </div>
+                @endif
                 <div class="relative">
-                    <button onclick="toggleDropdown('profile-dropdown')" class="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-gray-100 transition-colors">
-                        <div class="w-8 h-8 rounded-full bg-primary-500 flex items-center justify-center">
-                            <span class="text-white font-semibold text-xs">{{ strtoupper(substr(auth()->user()->name,0,1)) }}</span>
+                    <button onclick="toggleDropdown(this)" class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors text-sm text-gray-600">
+                        <div class="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center">
+                            <span class="text-primary-600 font-semibold text-sm">{{ strtoupper(substr(auth()->user()->name,0,1)) }}</span>
                         </div>
-                        <span class="text-sm font-medium text-gray-700 hidden sm:block">{{ auth()->user()->name }}</span>
-                        <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/>
-                        </svg>
+                        <span class="hidden sm:block">{{ auth()->user()->name }}</span>
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
                     </button>
-
-                    <div id="profile-dropdown" class="dropdown-menu absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-200 py-2 z-50">
-                        <div class="px-4 py-2 border-b border-gray-100">
-                            <div class="text-sm font-semibold text-gray-900">{{ auth()->user()->name }}</div>
-                            <div class="text-xs text-gray-500">{{ auth()->user()->email }}</div>
-                        </div>
-                        <a href="{{ route('profile.show') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
-                            <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/>
-                            </svg>
-                            Мой профиль
-                        </a>
-                        <div class="border-t border-gray-100 mt-1 pt-1">
-                            <form method="POST" action="{{ route('logout') }}">
-                                @csrf
-                                <button type="submit" class="flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 w-full transition-colors">
-                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9"/>
-                                    </svg>
-                                    Выйти
-                                </button>
-                            </form>
-                        </div>
+                    <div class="dropdown-menu absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50">
+                        <a href="{{ route('profile.show') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Профиль</a>
+                        <form method="POST" action="{{ route('logout') }}">
+                            @csrf
+                            <button type="submit" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Выйти</button>
+                        </form>
                     </div>
                 </div>
             </div>
         </header>
-
-        {{-- Flash messages (toast) --}}
-        <div id="toast-container" class="fixed top-20 right-6 z-50 space-y-3 w-96">
-            @if(session('ok'))
-                <div class="toast-item flex items-center gap-3 bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-xl shadow-lg text-sm">
-                    <div class="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center flex-shrink-0">
-                        <svg class="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                    </div>
-                    <span class="flex-1">{{ session('ok') }}</span>
-                    <button onclick="this.closest('.toast-item').remove()" class="text-emerald-400 hover:text-emerald-600 flex-shrink-0">&times;</button>
-                </div>
-            @endif
-            @if(session('err'))
-                <div class="toast-item flex items-center gap-3 bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-xl shadow-lg text-sm">
-                    <div class="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center flex-shrink-0">
-                        <svg class="w-5 h-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/>
-                        </svg>
-                    </div>
-                    <span class="flex-1">{{ session('err') }}</span>
-                    <button onclick="this.closest('.toast-item').remove()" class="text-red-400 hover:text-red-600 flex-shrink-0">&times;</button>
-                </div>
-            @endif
-            @if(session('password_plain'))
-                <div class="toast-item flex items-center gap-3 bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-xl shadow-lg text-sm">
-                    <div class="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
-                        <svg class="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/>
-                        </svg>
-                    </div>
-                    <span class="flex-1">Пароль: <b class="font-mono">{{ session('password_plain') }}</b></span>
-                    <button onclick="this.closest('.toast-item').remove()" class="text-amber-400 hover:text-amber-600 flex-shrink-0">&times;</button>
-                </div>
-            @endif
-        </div>
-
-        {{-- Page content --}}
         <main class="p-6">
             {{ $slot }}
         </main>
     </div>
 </div>
-
-{{-- Confirmation modal --}}
-<div id="confirm-modal" class="fixed inset-0 z-[100] hidden" style="background: rgba(0,0,0,0.4); backdrop-filter: blur(2px);">
-    <div class="flex items-center justify-center min-h-screen p-4">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden" id="confirm-modal-box">
-            <div class="p-6">
-                <div class="flex items-start gap-4">
-                    <div class="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0" id="confirm-icon-wrap">
-                        <svg id="confirm-icon" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/>
-                        </svg>
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <h3 class="text-lg font-semibold text-gray-900" id="confirm-title">Подтверждение</h3>
-                        <p class="text-sm text-gray-600 mt-1" id="confirm-message">Вы уверены?</p>
-                    </div>
-                </div>
-            </div>
-            <div class="px-6 py-4 bg-gray-50 border-t border-gray-100 flex items-center justify-end gap-3">
-                <button onclick="closeConfirmModal()" class="px-4 py-2.5 text-sm font-medium text-gray-600 border border-gray-200 rounded-xl hover:bg-white transition-colors">
-                    Отмена
-                </button>
-                <button id="confirm-btn" class="px-5 py-2.5 text-sm font-semibold text-white rounded-xl transition-colors">
-                    Подтвердить
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<script>
-    // Sidebar toggle
-    function toggleSidebar() {
-        document.body.classList.toggle('sidebar-collapsed');
-    }
-
-    // Dropdown toggle
-    function toggleDropdown(id) {
-        var el = document.getElementById(id);
-        el.classList.toggle('show');
-    }
-
-    // Submenu toggle
-    function toggleSubmenu(btn) {
-        btn.classList.toggle('open');
-        var submenu = btn.nextElementSibling;
-        submenu.classList.toggle('open');
-    }
-
-    // Close dropdowns on outside click
-    document.addEventListener('click', function(e) {
-        if (!e.target.closest('.relative')) {
-            document.querySelectorAll('.dropdown-menu.show').forEach(function(d) {
-                d.classList.remove('show');
-            });
-        }
-    });
-
-    // Auto-hide toast messages
-    document.querySelectorAll('.toast-item').forEach(function(el) {
-        setTimeout(function() {
-            el.style.transition = 'opacity 0.3s, transform 0.3s';
-            el.style.opacity = '0';
-            el.style.transform = 'translateX(20px)';
-            setTimeout(function() { el.remove(); }, 300);
-        }, 5000);
-    });
-
-    // ─── Confirmation Modal ──────────────────────────────────────────────
-    var _confirmCallback = null;
-
-    function confirmAction(opts) {
-        var modal = document.getElementById('confirm-modal');
-        var title = document.getElementById('confirm-title');
-        var message = document.getElementById('confirm-message');
-        var btn = document.getElementById('confirm-btn');
-        var iconWrap = document.getElementById('confirm-icon-wrap');
-        var icon = document.getElementById('confirm-icon');
-
-        title.textContent = opts.title || 'Подтверждение';
-        message.textContent = opts.message || 'Вы уверены?';
-
-        // Style by type
-        if (opts.type === 'danger') {
-            iconWrap.className = 'w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 bg-red-100';
-            icon.className = 'w-6 h-6 text-red-600';
-            btn.className = 'px-5 py-2.5 text-sm font-semibold text-white rounded-xl bg-red-600 hover:bg-red-700 transition-colors';
-            btn.textContent = opts.confirmText || 'Удалить';
-        } else if (opts.type === 'warning') {
-            iconWrap.className = 'w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 bg-amber-100';
-            icon.className = 'w-6 h-6 text-amber-600';
-            btn.className = 'px-5 py-2.5 text-sm font-semibold text-white rounded-xl bg-amber-600 hover:bg-amber-700 transition-colors';
-            btn.textContent = opts.confirmText || 'Подтвердить';
-        } else {
-            iconWrap.className = 'w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 bg-primary-100';
-            icon.className = 'w-6 h-6 text-primary-600';
-            btn.className = 'px-5 py-2.5 text-sm font-semibold text-white rounded-xl bg-primary-600 hover:bg-primary-700 transition-colors';
-            btn.textContent = opts.confirmText || 'Подтвердить';
-        }
-
-        _confirmCallback = opts.onConfirm || null;
-        modal.classList.remove('hidden');
-    }
-
-    function closeConfirmModal() {
-        document.getElementById('confirm-modal').classList.add('hidden');
-        _confirmCallback = null;
-    }
-
-    document.getElementById('confirm-btn').addEventListener('click', function() {
-        if (_confirmCallback) _confirmCallback();
-        closeConfirmModal();
-    });
-
-    document.getElementById('confirm-modal').addEventListener('click', function(e) {
-        if (e.target === this) closeConfirmModal();
-    });
-
-    // ─── Copy variable to clipboard ──────────────────────────────────────
-    function copyVar(btn, code) {
-        var text = '${' + code + '}';
-        if (navigator.clipboard && window.isSecureContext) {
-            navigator.clipboard.writeText(text);
-        } else {
-            var ta = document.createElement('textarea');
-            ta.value = text;
-            ta.style.cssText = 'position:fixed;left:-9999px';
-            document.body.appendChild(ta);
-            ta.select();
-            document.execCommand('copy');
-            document.body.removeChild(ta);
-        }
-        var label = btn.querySelector('.copy-label');
-        var ok = btn.querySelector('.copy-ok');
-        if (label) label.classList.add('hidden');
-        if (ok) ok.classList.remove('hidden');
-        btn.classList.add('bg-green-50', 'border-green-400');
-        btn.classList.remove('bg-white', 'border-yellow-200');
-        setTimeout(function() {
-            if (label) label.classList.remove('hidden');
-            if (ok) ok.classList.add('hidden');
-            btn.classList.remove('bg-green-50', 'border-green-400');
-            btn.classList.add('bg-white', 'border-yellow-200');
-        }, 1500);
-    }
-</script>
-
 @livewireScripts
+<script>
+function toggleSidebar() {
+    document.body.classList.toggle('sidebar-collapsed');
+    const aside = document.querySelector('aside');
+    if (document.body.classList.contains('sidebar-collapsed')) {
+        aside.style.width = '5rem';
+        document.getElementById('main-content').style.marginLeft = '5rem';
+    } else {
+        aside.style.width = '16rem';
+        document.getElementById('main-content').style.marginLeft = '16rem';
+    }
+}
+function toggleSubmenu(btn) {
+    btn.classList.toggle('open');
+    const sub = btn.nextElementSibling;
+    if (sub) sub.classList.toggle('open');
+}
+function toggleDropdown(btn) {
+    const menu = btn.nextElementSibling;
+    if (menu) menu.classList.toggle('show');
+}
+document.addEventListener('click', function(e) {
+    document.querySelectorAll('.dropdown-menu.show').forEach(function(m) {
+        if (!m.parentElement.contains(e.target)) m.classList.remove('show');
+    });
+});
+setTimeout(function() {
+    document.querySelectorAll('.flash-msg').forEach(function(el) { el.classList.add('hidden'); });
+}, 5000);
+
+// Custom Select
+function toggleCustomSelect(btn) {
+    const wrapper = btn.closest('.custom-select-wrapper');
+    const dropdown = wrapper.querySelector('.custom-select-dropdown');
+    const chevron = btn.querySelector('.chevron');
+    const isOpen = !dropdown.classList.contains('hidden');
+    // Close all other dropdowns
+    document.querySelectorAll('.custom-select-dropdown').forEach(d => d.classList.add('hidden'));
+    document.querySelectorAll('.chevron').forEach(c => c.style.transform = '');
+    if (!isOpen) {
+        dropdown.classList.remove('hidden');
+        if (chevron) chevron.style.transform = 'rotate(180deg)';
+    }
+}
+
+function selectCustomOption(el, value, label) {
+    const wrapper = el.closest('.custom-select-wrapper');
+    wrapper.querySelector('.custom-select-label').textContent = label;
+    wrapper.querySelector('.custom-select-label').classList.remove('text-slate-400');
+    wrapper.querySelector('.custom-select-label').classList.add('text-slate-800', 'font-medium');
+    wrapper.querySelector('.custom-select-dropdown').classList.add('hidden');
+    wrapper.querySelector('.chevron').style.transform = '';
+    // Trigger Livewire update via hidden input
+    const hidden = wrapper.querySelector('.custom-select-hidden');
+    hidden.value = value;
+    hidden.dispatchEvent(new Event('input', {bubbles: true}));
+}
+
+function filterCustomSelect(input) {
+    const wrapper = input.closest('.custom-select-wrapper');
+    const query = input.value.toLowerCase();
+    wrapper.querySelectorAll('.custom-select-option').forEach(opt => {
+        const text = opt.textContent.toLowerCase();
+        opt.style.display = text.includes(query) ? '' : 'none';
+    });
+}
+
+// Custom Datepicker
+var datepickers = {};
+
+function toggleDatepicker(btn) {
+    const wrapper = btn.closest('.custom-datepicker-wrapper');
+    const popup = wrapper.querySelector('.datepicker-popup');
+    const isOpen = !popup.classList.contains('hidden');
+    // Close all other datepickers
+    document.querySelectorAll('.datepicker-popup').forEach(p => p.classList.add('hidden'));
+    if (!isOpen) {
+        popup.classList.remove('hidden');
+        initDatepicker(wrapper);
+    }
+}
+
+function initDatepicker(wrapper) {
+    const name = wrapper.dataset.name;
+    const hidden = wrapper.querySelector('.datepicker-hidden');
+
+    if (!datepickers[name]) {
+        datepickers[name] = {
+            date: hidden.value ? new Date(hidden.value) : null,
+            viewDate: new Date(),
+            months: ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь']
+        };
+    }
+    // Reset to month view
+    wrapper.querySelector('.datepicker-monthpicker').classList.add('hidden');
+    wrapper.querySelector('.datepicker-yearpicker').classList.add('hidden');
+    wrapper.querySelector('.datepicker-days').style.display = '';
+    renderDays(wrapper);
+}
+
+function datepickerPrevYear(btn) {
+    const wrapper = btn.closest('.custom-datepicker-wrapper');
+    const dp = datepickers[wrapper.dataset.name];
+    dp.viewDate = new Date(dp.viewDate.getFullYear() - 1, dp.viewDate.getMonth(), 1);
+    renderDays(wrapper);
+}
+
+function datepickerNextYear(btn) {
+    const wrapper = btn.closest('.custom-datepicker-wrapper');
+    const dp = datepickers[wrapper.dataset.name];
+    dp.viewDate = new Date(dp.viewDate.getFullYear() + 1, dp.viewDate.getMonth(), 1);
+    renderDays(wrapper);
+}
+
+function datepickerPrevMonth(btn) {
+    const wrapper = btn.closest('.custom-datepicker-wrapper');
+    const dp = datepickers[wrapper.dataset.name];
+    dp.viewDate = new Date(dp.viewDate.getFullYear(), dp.viewDate.getMonth() - 1, 1);
+    renderDays(wrapper);
+}
+
+function datepickerNextMonth(btn) {
+    const wrapper = btn.closest('.custom-datepicker-wrapper');
+    const dp = datepickers[wrapper.dataset.name];
+    dp.viewDate = new Date(dp.viewDate.getFullYear(), dp.viewDate.getMonth() + 1, 1);
+    renderDays(wrapper);
+}
+
+function datepickerToggleMonthPicker(btn) {
+    const wrapper = btn.closest('.custom-datepicker-wrapper');
+    const monthPicker = wrapper.querySelector('.datepicker-monthpicker');
+    const yearPicker = wrapper.querySelector('.datepicker-yearpicker');
+    const daysGrid = wrapper.querySelector('.datepicker-days');
+    const dp = datepickers[wrapper.dataset.name];
+
+    if (!monthPicker.classList.contains('hidden')) {
+        // Show year picker
+        monthPicker.classList.add('hidden');
+        yearPicker.classList.remove('hidden');
+        daysGrid.style.display = 'none';
+        renderYearPicker(wrapper);
+    } else if (!yearPicker.classList.contains('hidden')) {
+        // Show days
+        yearPicker.classList.add('hidden');
+        daysGrid.style.display = '';
+        renderDays(wrapper);
+    } else {
+        // Show month picker
+        monthPicker.classList.remove('hidden');
+        daysGrid.style.display = 'none';
+        // Highlight current month
+        monthPicker.querySelectorAll('button').forEach((b, i) => {
+            b.classList.toggle('bg-indigo-600', i === dp.viewDate.getMonth());
+            b.classList.toggle('text-white', i === dp.viewDate.getMonth());
+        });
+    }
+}
+
+function datepickerSelectMonth(btn, month) {
+    const wrapper = btn.closest('.custom-datepicker-wrapper');
+    const dp = datepickers[wrapper.dataset.name];
+    dp.viewDate = new Date(dp.viewDate.getFullYear(), month, 1);
+    wrapper.querySelector('.datepicker-monthpicker').classList.add('hidden');
+    wrapper.querySelector('.datepicker-days').style.display = '';
+    renderDays(wrapper);
+}
+
+function renderYearPicker(wrapper) {
+    const dp = datepickers[wrapper.dataset.name];
+    const yearPicker = wrapper.querySelector('.datepicker-yearpicker');
+    const currentYear = dp.viewDate.getFullYear();
+    let html = '';
+    for (let y = currentYear - 50; y <= currentYear + 10; y++) {
+        const isActive = y === currentYear;
+        html += '<button type="button" onclick="datepickerSelectYear(this, ' + y + ')" class="px-3 py-2 text-sm rounded-lg transition-colors ' +
+            (isActive ? 'bg-indigo-600 text-white' : 'hover:bg-indigo-50 text-slate-700') + '">' + y + '</button>';
+    }
+    yearPicker.innerHTML = html;
+    // Scroll to current year
+    const activeBtn = yearPicker.querySelector('.bg-indigo-600');
+    if (activeBtn) activeBtn.scrollIntoView({ block: 'center' });
+}
+
+function datepickerSelectYear(btn, year) {
+    const wrapper = btn.closest('.custom-datepicker-wrapper');
+    const dp = datepickers[wrapper.dataset.name];
+    dp.viewDate = new Date(year, dp.viewDate.getMonth(), 1);
+    wrapper.querySelector('.datepicker-yearpicker').classList.add('hidden');
+    wrapper.querySelector('.datepicker-monthpicker').classList.remove('hidden');
+    wrapper.querySelector('.datepicker-days').style.display = 'none';
+    wrapper.querySelector('.datepicker-monthpicker').querySelectorAll('button').forEach((b, i) => {
+        b.classList.toggle('bg-indigo-600', i === dp.viewDate.getMonth());
+        b.classList.toggle('text-white', i === dp.viewDate.getMonth());
+    });
+}
+
+function renderDays(wrapper) {
+    const name = wrapper.dataset.name;
+    const dp = datepickers[name];
+    const minDate = wrapper.dataset.min ? new Date(wrapper.dataset.min) : null;
+    const maxDate = wrapper.dataset.max ? new Date(wrapper.dataset.max) : null;
+    const monthLabel = wrapper.querySelector('.datepicker-month');
+    const daysContainer = wrapper.querySelector('.datepicker-days');
+
+    monthLabel.textContent = dp.months[dp.viewDate.getMonth()] + ' ' + dp.viewDate.getFullYear();
+
+    const year = dp.viewDate.getFullYear();
+    const month = dp.viewDate.getMonth();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    let firstDay = new Date(year, month, 1).getDay();
+    firstDay = firstDay === 0 ? 6 : firstDay - 1;
+
+    let html = '';
+    for (let i = 0; i < firstDay; i++) {
+        html += '<div></div>';
+    }
+    for (let day = 1; day <= daysInMonth; day++) {
+        const d = new Date(year, month, day);
+        const isSelected = dp.date && dp.date.getTime() === d.getTime();
+        const isDisabled = (minDate && d < minDate) || (maxDate && d > maxDate);
+        let cls = 'h-9 w-9 rounded-full flex items-center justify-center text-sm font-medium transition-all cursor-pointer ';
+        if (isSelected) cls += 'bg-indigo-600 text-white shadow-md';
+        else if (isDisabled) cls += 'text-slate-300 cursor-not-allowed';
+        else cls += 'text-slate-800 hover:bg-indigo-50';
+        const disabled = isDisabled ? 'disabled' : '';
+        html += '<button type="button" onclick="selectDate(this, ' + day + ')" ' + disabled + ' class="' + cls + '">' + day + '</button>';
+    }
+    daysContainer.innerHTML = html;
+}
+
+function selectDate(btn, day) {
+    const wrapper = btn.closest('.custom-datepicker-wrapper');
+    const name = wrapper.dataset.name;
+    const dp = datepickers[name];
+    const minDate = wrapper.dataset.min ? new Date(wrapper.dataset.min) : null;
+    const maxDate = wrapper.dataset.max ? new Date(wrapper.dataset.max) : null;
+    const d = new Date(dp.viewDate.getFullYear(), dp.viewDate.getMonth(), day);
+    if (minDate && d < minDate) return;
+    if (maxDate && d > maxDate) return;
+
+    dp.date = d;
+    const formatted = d.toISOString().split('T')[0];
+    const hidden = wrapper.querySelector('.datepicker-hidden');
+    hidden.value = formatted;
+    // Update input field
+    const input = wrapper.querySelector('.datepicker-input');
+    if (input) {
+        const dayStr = String(d.getDate()).padStart(2, '0');
+        const monthStr = String(d.getMonth() + 1).padStart(2, '0');
+        input.value = dayStr + '.' + monthStr + '.' + d.getFullYear();
+    }
+    wrapper.querySelector('.datepicker-popup').classList.add('hidden');
+    // Trigger Livewire update
+    hidden.dispatchEvent(new Event('input', {bubbles: true}));
+}
+
+function handleDateInput(input) {
+    const wrapper = input.closest('.custom-datepicker-wrapper');
+    if (!wrapper) return;
+    const hidden = wrapper.querySelector('.datepicker-hidden');
+    const val = input.value.trim();
+
+    // Try to parse dd.mm.yyyy or d.m.yyyy
+    const match = val.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+    if (match) {
+        const day = parseInt(match[1], 10);
+        const month = parseInt(match[2], 10);
+        const year = parseInt(match[3], 10);
+        if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+            const d = new Date(year, month - 1, day);
+            if (d.getDate() === day && d.getMonth() === month - 1) {
+                const formatted = d.toISOString().split('T')[0];
+                hidden.value = formatted;
+                // Trigger Livewire update
+                hidden.dispatchEvent(new Event('input', {bubbles: true}));
+            }
+        }
+    }
+}
+
+// Close dropdowns on outside click
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.custom-select-wrapper')) {
+        document.querySelectorAll('.custom-select-dropdown').forEach(d => d.classList.add('hidden'));
+        document.querySelectorAll('.chevron').forEach(c => c.style.transform = '');
+    }
+    if (!e.target.closest('.custom-datepicker-wrapper')) {
+        document.querySelectorAll('.datepicker-popup').forEach(p => p.classList.add('hidden'));
+    }
+});
+
+// Drag-and-drop for product fields
+var dragState = { type: '', fromIndex: -1, fromGroup: 0 };
+
+function dragStartSection(e, index) {
+    dragState = { type: 'section', fromIndex: index };
+    e.dataTransfer.effectAllowed = 'move';
+    e.target.style.opacity = '0.5';
+}
+
+function dragOverSection(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    var el = e.target.closest('[draggable]');
+    if (el) el.style.borderColor = '#4f46e5';
+}
+
+function dropSection(e, toIndex) {
+    e.preventDefault();
+    var el = e.target.closest('[draggable]');
+    if (el) el.style.borderColor = '';
+    if (dragState.type === 'section' && dragState.fromIndex !== toIndex) {
+        document.getElementById('dragAction').value = JSON.stringify({action:'moveSection', from: dragState.fromIndex, to: toIndex});
+        document.getElementById('dragAction').dispatchEvent(new Event('input', {bubbles: true}));
+    }
+    dragState = { type: '', fromIndex: -1 };
+}
+
+function dragEndSection(e) {
+    e.target.style.opacity = '1';
+    document.querySelectorAll('[draggable]').forEach(function(el) { el.style.borderColor = ''; });
+}
+
+function dragStartField(e, index, groupId) {
+    dragState = { type: 'field', fromIndex: index, fromGroup: groupId };
+    e.dataTransfer.effectAllowed = 'move';
+    e.target.style.opacity = '0.5';
+}
+
+function dragOverField(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    var el = e.target.closest('[draggable]');
+    if (el) el.style.borderColor = '#4f46e5';
+}
+
+function dropField(e, toIndex, toGroupId) {
+    e.preventDefault();
+    var el = e.target.closest('[draggable]');
+    if (el) el.style.borderColor = '';
+    if (dragState.type === 'field') {
+        document.getElementById('dragAction').value = JSON.stringify({action:'moveField', from: dragState.fromIndex, to: toIndex, fromGroup: dragState.fromGroup, toGroup: toGroupId});
+        document.getElementById('dragAction').dispatchEvent(new Event('input', {bubbles: true}));
+    }
+    dragState = { type: '', fromIndex: -1, fromGroup: 0 };
+}
+
+function dragEndField(e) {
+    e.target.style.opacity = '1';
+    document.querySelectorAll('[draggable]').forEach(function(el) { el.style.borderColor = ''; });
+}
+
+function dragOverGroup(e) {
+    e.preventDefault();
+    e.target.closest('div').style.backgroundColor = 'rgba(79, 70, 229, 0.1)';
+}
+
+function dropToGroup(e, groupId) {
+    e.preventDefault();
+    e.target.closest('div').style.backgroundColor = '';
+    if (dragState.type === 'field') {
+        document.getElementById('dragAction').value = JSON.stringify({action:'moveFieldToGroup', from: dragState.fromIndex, toGroup: groupId});
+        document.getElementById('dragAction').dispatchEvent(new Event('input', {bubbles: true}));
+    }
+    dragState = { type: '', fromIndex: -1 };
+}
+
+function dropToRow(e, groupId, rowId) {
+    e.preventDefault();
+    e.target.closest('div').style.backgroundColor = '';
+    if (dragState.type === 'field') {
+        document.getElementById('dragAction').value = JSON.stringify({action:'dropToRow', from: dragState.fromIndex, toGroup: groupId, rowId: rowId});
+        document.getElementById('dragAction').dispatchEvent(new Event('input', {bubbles: true}));
+    }
+    dragState = { type: '', fromIndex: -1 };
+}
+
+// Coverage drag-and-drop
+function dragStartCoverage(e, index) {
+    dragState = { type: 'coverage', fromIndex: index };
+    e.dataTransfer.effectAllowed = 'move';
+    e.target.style.opacity = '0.5';
+}
+
+function dragEndCoverage(e) {
+    e.target.style.opacity = '1';
+    document.querySelectorAll('[draggable]').forEach(function(el) { el.style.borderColor = ''; });
+}
+
+function dropCoverageToRow(e, rowId) {
+    e.preventDefault();
+    var el = e.target.closest('[draggable]');
+    if (el) el.style.borderColor = '';
+    if (dragState.type === 'coverage') {
+        document.getElementById('dragAction').value = JSON.stringify({action:'dropCoverageToRow', from: dragState.fromIndex, rowId: rowId});
+        document.getElementById('dragAction').dispatchEvent(new Event('input', {bubbles: true}));
+    }
+    dragState = { type: '', fromIndex: -1 };
+}
+
+function dragOverCoverageRow(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    var el = e.target.closest('[draggable]');
+    if (el) el.style.borderColor = '#6366f1';
+}
+</script>
 </body>
 </html>

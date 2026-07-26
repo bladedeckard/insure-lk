@@ -60,7 +60,7 @@ class DatabaseSeeder extends Seeder
             ['prefix' => 'NOV', 'include_year' => true, 'year_digits' => 2, 'counter_length' => 7, 'start_value' => 1, 'reset_period' => 'yearly']
         );
 
-        // ─── Словари (банки) ──────────────────────────────────────────────
+        // ─── Словари (банки — legacy) ─────────────────────────────────────
         $banks = Dictionary::firstOrCreate(['code' => 'banks'], ['name' => 'Банки']);
 
         $bankList = [
@@ -88,6 +88,10 @@ class DatabaseSeeder extends Seeder
                 ['label' => $b['label'], 'data' => $b['data']]
             );
         }
+
+        // ─── Новые сущности ───────────────────────────────────────────────
+        $this->call(ProductTypeSeeder::class);
+        $this->call(BankSeeder::class);
 
         // ─── Продукты (новый конструктор) ─────────────────────────────────
         $this->call(ProductsConstructorSeeder::class);

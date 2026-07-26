@@ -6,7 +6,7 @@ use Illuminate\Database\Seeder;
 use App\Models\{
     Product, ProductCoverage, ProductField, ProductFieldGroup,
     ProductRestriction, ProductRestrictionCondition, ProductDocument,
-    ProductAgreement, ProductDeclaration, Numerator, Dictionary
+    ProductAgreement, ProductDeclaration, Numerator, Dictionary, ProductType, Bank
 };
 
 class ProductsConstructorSeeder extends Seeder
@@ -38,12 +38,15 @@ class ProductsConstructorSeeder extends Seeder
         // Удаляем старый продукт если есть
         Product::where('code', 'property')->delete();
 
+        $propertyType = ProductType::where('code', 'property')->first();
+
         $product = Product::create([
             'code' => 'property',
             'name' => 'Страхование квартиры «Страху.Нет»',
             'marketing_name' => 'Страху.Нет',
             'description' => 'Мы гарантируем надежную защиту вашей квартиры от потенциальных угроз, таких как заливы, пожары, кражи и другие неприятности.',
             'numerator_id' => $numerator->id,
+            'product_type_id' => $propertyType?->id,
             'calculator_class' => 'App\\Services\\ProductCalculators\\FormulaBasedCalculator',
             'config_json' => [],
             'formula_expression' => '(
@@ -326,13 +329,16 @@ class ProductsConstructorSeeder extends Seeder
 
         Product::where('code', 'mortgage')->delete();
 
+        $mortgageType = ProductType::where('code', 'mortgage')->first();
+
         $product = Product::create([
             'code' => 'mortgage',
             'name' => 'Страхование квартиры «Новосел»',
             'marketing_name' => 'Новосел',
             'description' => 'Ипотечное страхование: жизнь, имущество, титул',
             'numerator_id' => $numerator->id,
-            'calculator_class' => 'App\\Services\\ProductCalculators\\MortgageCalculator', // Оставляем старый для сложных расчётов
+            'product_type_id' => $mortgageType?->id,
+            'calculator_class' => 'App\\Services\\ProductCalculators\\MortgageCalculator',
             'config_json' => [],
             'formula_expression' => null, // Сложная формула с перестрахованием — используем MortgageCalculator
             'formula_variables' => [],
@@ -352,36 +358,47 @@ class ProductsConstructorSeeder extends Seeder
         // ─── Покрытия ─────────────────────────────────────────────────────
         $coverages = [
             [
-                'name' => 'Несчастный случай (Жизнь)',
-                'code' => 'sum_life',
+                'name' => 'Страховая сумма',
+                'code' => 'insurance_sum',
                 'type' => 'range',
                 'min_value' => 0,
                 'max_value' => 45000000,
                 'default_value' => 0,
                 'required_for_calc' => true,
                 'sort_order' => 1,
+                'risks' => [],
+            ],
+            [
+                'name' => 'Несчастный случай (Жизнь)',
+                'code' => 'risk_life',
+                'type' => 'flag',
+                'min_value' => null,
+                'max_value' => null,
+                'default_value' => 0,
+                'required_for_calc' => false,
+                'sort_order' => 2,
                 'risks' => ['Смерть в результате несчастного случая или болезни', 'Установление I или II группы инвалидности'],
             ],
             [
                 'name' => 'Имущество (Конструктивные элементы)',
-                'code' => 'sum_property',
-                'type' => 'range',
-                'min_value' => 0,
-                'max_value' => 45000000,
+                'code' => 'risk_property',
+                'type' => 'flag',
+                'min_value' => null,
+                'max_value' => null,
                 'default_value' => 0,
-                'required_for_calc' => true,
-                'sort_order' => 2,
+                'required_for_calc' => false,
+                'sort_order' => 3,
                 'risks' => ['Пожар', 'Взрыв', 'Удар молнии', 'Стихийные бедствия', 'Залив', 'Падение предметов', 'Противоправные действия третьих лиц', 'Наезд ТС', 'Конструктивные дефекты'],
             ],
             [
                 'name' => 'Титул',
-                'code' => 'sum_title',
-                'type' => 'range',
-                'min_value' => 0,
-                'max_value' => 45000000,
+                'code' => 'risk_title',
+                'type' => 'flag',
+                'min_value' => null,
+                'max_value' => null,
                 'default_value' => 0,
                 'required_for_calc' => false,
-                'sort_order' => 3,
+                'sort_order' => 4,
                 'risks' => ['Полная или частичная утрата права собственности', 'Ограничение права собственности'],
             ],
         ];
@@ -405,9 +422,20 @@ class ProductsConstructorSeeder extends Seeder
             'sort_order' => 2,
         ]);
 
+        // ─── Группа 3: Кредит и доп. информация ───────────────────────────
+        $group3 = ProductFieldGroup::create([
+            'product_id' => $product->id,
+            'name' => 'Кредит и доп. информация',
+            'code' => 'credit_info',
+            'sort_order' => 3,
+        ]);
+
         // ─── Поля (выборка ключевых) ──────────────────────────────────────
+        $bankOptions = Bank::where('is_active', true)->orderBy('name')->get()
+            ->map(fn($b) => ['value' => $b->code, 'label' => $b->name])->toArray();
+
         $fields = [
-            ['group_id' => $group1->id, 'name' => 'Банк', 'code' => 'bank', 'type' => 'select', 'required' => true, 'sort_order' => 1, 'options' => [['value' => 'sber', 'label' => 'Сбербанк'], ['value' => 'vtb', 'label' => 'ВТБ'], ['value' => 'alfa', 'label' => 'Альфабанк']]],
+            ['group_id' => $group1->id, 'name' => 'Банк', 'code' => 'bank', 'type' => 'select', 'required' => true, 'sort_order' => 1, 'options' => $bankOptions],
             ['group_id' => $group1->id, 'name' => 'Остаток суммы задолженности', 'code' => 'osg', 'type' => 'number', 'required' => true, 'sort_order' => 2],
             ['group_id' => $group1->id, 'name' => 'Тип помещения', 'code' => 'room_type', 'type' => 'select', 'required' => true, 'sort_order' => 3, 'options' => [['value' => 'house', 'label' => 'Дом'], ['value' => 'apartment', 'label' => 'Квартира'], ['value' => 'non_residential', 'label' => 'Нежилое помещение']]],
             ['group_id' => $group1->id, 'name' => 'Тип перекрытия', 'code' => 'cover_type', 'type' => 'select', 'required' => true, 'sort_order' => 4, 'options' => [['value' => 'stone', 'label' => 'Каменный'], ['value' => 'mixed', 'label' => 'Смешанный'], ['value' => 'wood', 'label' => 'Деревянный']]],
@@ -419,6 +447,14 @@ class ProductsConstructorSeeder extends Seeder
             ['group_id' => $group1->id, 'name' => 'Экстремальный спорт?', 'code' => 'extreme_sport', 'type' => 'checkbox', 'required' => false, 'sort_order' => 10],
             ['group_id' => $group1->id, 'name' => 'Травмоопасная деятельность?', 'code' => 'dangerous_activity', 'type' => 'select', 'required' => false, 'sort_order' => 11, 'options' => [['value' => 'no', 'label' => 'Нерисковая'], ['value' => 'yes', 'label' => 'Опасная']]],
             ['group_id' => $group1->id, 'name' => 'Дата начала страхования', 'code' => 'start_date', 'type' => 'date', 'required' => true, 'sort_order' => 12],
+
+            // Кредитная информация
+            ['group_id' => $group3->id, 'name' => 'Текущая ставка кредита (%)', 'code' => 'credit_rate', 'type' => 'number', 'required' => false, 'sort_order' => 1, 'hint' => 'Ставка по кредитному договору'],
+            ['group_id' => $group3->id, 'name' => 'Ставка без страховки (%)', 'code' => 'credit_rate_no_insurance', 'type' => 'number', 'required' => false, 'sort_order' => 2, 'hint' => 'Ставка кредита при отсутствии страхования (для НС)'],
+            ['group_id' => $group3->id, 'name' => 'Номер кредитного договора', 'code' => 'credit_agreement_number', 'type' => 'text', 'required' => false, 'sort_order' => 3],
+            ['group_id' => $group3->id, 'name' => 'Дата кредитного договора', 'code' => 'credit_agreement_date', 'type' => 'date', 'required' => false, 'sort_order' => 4],
+            ['group_id' => $group3->id, 'name' => 'Промокод', 'code' => 'promocode', 'type' => 'text', 'required' => false, 'sort_order' => 5, 'hint' => 'Введите промокод для получения скидки'],
+            ['group_id' => $group3->id, 'name' => 'Комментарии', 'code' => 'comments', 'type' => 'textarea', 'required' => false, 'sort_order' => 6],
 
             ['group_id' => $group2->id, 'name' => 'Фамилия', 'code' => 'policyholder_last_name', 'type' => 'text', 'required' => true, 'sort_order' => 1],
             ['group_id' => $group2->id, 'name' => 'Имя', 'code' => 'policyholder_first_name', 'type' => 'text', 'required' => true, 'sort_order' => 2],

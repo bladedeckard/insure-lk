@@ -77,6 +77,18 @@
                     </div>
                 @endif
 
+                @if($cov_type === 'flag')
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Описание
+                            <span class="text-gray-400 text-xs">(отображается в форме полиса)</span>
+                        </label>
+                        <textarea wire:model.defer="cov_description" rows="2"
+                            class="w-full border border-gray-300 rounded-lg px-3 py-2"
+                            placeholder="Страхование от несчастных случаев и болезней"></textarea>
+                    </div>
+                @endif
+
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">
                         Риски (через запятую)

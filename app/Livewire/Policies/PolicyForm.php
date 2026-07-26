@@ -8,6 +8,8 @@ use App\Models\Numerator;
 use App\Services\NumeratorService;
 use App\Services\FormulaCalculator;
 use App\Services\ConditionCheckerService;
+use App\Services\DadataService;
+use App\Models\Bank;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 use Carbon\Carbon;
@@ -25,12 +27,27 @@ class PolicyForm extends Component
     public string $policyholder_email = '';
     public string $policyholder_phone = '';
 
-    // Декларации — согласия
+    // Intermediary
+    public ?int $intermediary_id = null;
+    public float $kv_percent = 0;
+
+    // Promocode and markup (mutually exclusive)
+    public string $promocode = '';
+    public float $markup_percent = 0;
+
+    // Calculation detail popup
+    public bool $showCalcDetail = false;
+
+    // Declarations
     public array $declarationAgreements = [];
-    // Соглашения — согласия
+    // Agreements
     public array $agreementChecks = [];
-    // Ошибки ограничений
+    // Restriction errors
     public array $restrictionErrors = [];
+
+    // DaData address suggestions
+    public array $addressSuggestions = [];
+    public string $addressQuery = '';
 
     public function getProduct(): ?Product
     {
@@ -57,9 +74,33 @@ class PolicyForm extends Component
         }
     }
 
-    /**
-     * Инициализация значений по умолчанию из покрытий.
-     */
+    public function updatedPromocode(): void
+    {
+        if (!empty($this->promocode)) {
+            $this->markup_percent = 0; // Clear markup when promo is entered
+        }
+        $this->calculate();
+    }
+
+    public function updatedMarkupPercent(): void
+    {
+        if ($this->markup_percent > 0) {
+            $this->promocode = ''; // Clear promo when markup is entered
+        }
+        $this->calculate();
+    }
+
+    public function updatedIntermediaryId(): void
+    {
+        $this->kv_percent = 0; // Reset KV when intermediary changes
+        $this->calculate();
+    }
+
+    public function updatedKvPercent(): void
+    {
+        $this->calculate();
+    }
+
     private function initDataDefaults(): void
     {
         $product = $this->getProduct();
@@ -68,28 +109,21 @@ class PolicyForm extends Component
         foreach ($product->coverages as $cov) {
             if ($cov->code && !isset($this->data[$cov->code])) {
                 if ($cov->type === 'flag') {
-                    // Флаг всегда false по умолчанию
                     $this->data[$cov->code] = false;
                 } elseif ($cov->type === 'set') {
-                    // Для множества — первое значение из списка
                     $this->data[$cov->code] = $cov->set_values[0] ?? $cov->default_value ?? 0;
                 } else {
-                    // Для range/constant — default_value
                     $this->data[$cov->code] = $cov->default_value ?? 0;
                 }
             }
         }
     }
 
-    /**
-     * Расчёт премии.
-     */
     public function calculate(): void
     {
         $product = $this->getProduct();
         if (!$product) return;
 
-        // Подставляем дефолтные значения для покрытий если их нет
         $values = $this->data;
         foreach ($product->coverages as $cov) {
             if ($cov->code && !isset($values[$cov->code])) {
@@ -101,7 +135,6 @@ class PolicyForm extends Component
             }
         }
 
-        // Конвертируем числовые значения
         foreach ($values as $key => $val) {
             if (is_numeric($val)) {
                 $values[$key] = (float)$val;
@@ -109,14 +142,18 @@ class PolicyForm extends Component
             if (is_bool($val)) {
                 $values[$key] = $val ? 1 : 0;
             }
-            // Строки "0" или "" считаем как 0 для числовых полей
             if ($val === '' || $val === null) {
                 $values[$key] = 0;
             }
         }
 
+        // Pass promocode, markup, intermediary and KV to calculator
+        $values['promocode'] = $this->promocode;
+        $values['markup_percent'] = $this->markup_percent;
+        $values['intermediary_id'] = $this->intermediary_id;
+        $values['kv_percent'] = $this->kv_percent;
+
         try {
-            // Вариант 1: Формула напрямую через FormulaCalculator
             if (!empty($product->formula_expression)) {
                 $formulaCalc = app(FormulaCalculator::class);
                 $premium = $formulaCalc->calculate($product, $values);
@@ -124,59 +161,34 @@ class PolicyForm extends Component
                 $this->calculation = [
                     'premium' => $premium,
                     'breakdown' => $values,
-                    'debug' => [
-                        'method' => 'FormulaCalculator',
-                        'formula' => $product->formula_expression,
-                        'values' => $values,
-                        'has_expression_language' => class_exists(\Symfony\Component\ExpressionLanguage\ExpressionLanguage::class),
-                    ],
                 ];
                 return;
             }
 
-            // Вариант 2: Калькулятор продукта (старые классы)
-            $calc = $product->calculator();
-            $result = $calc->calculate($this->data);
-            $this->premium = $result['premium'] ?? 0;
-            $this->calculation = $result;
+            $calc = $product->calculator()->calculate($values);
+            $this->premium = $calc['premium'] ?? 0;
+            $this->calculation = $calc;
         } catch (\Throwable $e) {
             $this->premium = 0;
             $this->calculation = [
                 'premium' => 0,
                 'errors' => ['formula' => $e->getMessage()],
-                'debug' => [
-                    'exception' => get_class($e),
-                    'message' => $e->getMessage(),
-                    'file' => $e->getFile() . ':' . $e->getLine(),
-                    'formula' => $product->formula_expression,
-                    'values' => $values,
-                    'calculator_class' => $product->calculator_class,
-                ],
             ];
         }
     }
 
-    /**
-     * Проверка ограничений на заказ.
-     */
     private function checkOrderRestrictions(Product $product): array
     {
         $checker = app(ConditionCheckerService::class);
         return $checker->checkAllRestrictions($product, $this->data, 'order');
     }
 
-    /**
-     * Проверка андеррайтинга.
-     */
     private function checkUnderwriting(Product $product): array
     {
         $checker = app(ConditionCheckerService::class);
         return $checker->checkAllRestrictions($product, $this->data, 'underwriting');
     }
 
-    /**
-     * Сохранить черновик.
-     */
     public function saveDraft(): void
     {
         $this->persist('draft');
@@ -184,9 +196,6 @@ class PolicyForm extends Component
         redirect()->route('policies.index');
     }
 
-    /**
-     * Выпустить полис.
-     */
     public function issue(NumeratorService $num): mixed
     {
         $this->restrictionErrors = [];
@@ -198,21 +207,18 @@ class PolicyForm extends Component
 
         $errors = [];
 
-        // ─── [6] Проверка обязательных соглашений ──────────────────────
         foreach ($product->agreements as $idx => $agreement) {
             if ($agreement->required && empty($this->agreementChecks[$idx])) {
                 $errors[] = 'Необходимо подтвердить: "' . mb_substr($agreement->text, 0, 80) . '..."';
             }
         }
 
-        // ─── [6] Проверка обязательных деклараций ───────────────────────
         foreach ($product->declarations()->where('is_active', true)->get() as $decl) {
             if ($decl->required && empty($this->declarationAgreements[$decl->id])) {
                 $errors[] = 'Необходимо подтвердить декларацию: "' . $decl->name . '"';
             }
         }
 
-        // ─── [3] Валидация даты начала ──────────────────────────────────
         if (!empty($this->data['start_date'])) {
             $startDate = Carbon::parse($this->data['start_date']);
             $minDate = now()->addDays($product->period_start_days ?? 0)->startOfDay();
@@ -228,7 +234,6 @@ class PolicyForm extends Component
             return null;
         }
 
-        // Проверяем ограничения на заказ
         $orderBlocked = $this->checkOrderRestrictions($product);
         $blocked = collect($orderBlocked)->where('action', 'block');
         if ($blocked->isNotEmpty()) {
@@ -236,7 +241,6 @@ class PolicyForm extends Component
             return null;
         }
 
-        // Расчёт
         try {
             $calc = $product->calculator()->calculate($this->data);
         } catch (\Throwable $e) {
@@ -244,11 +248,11 @@ class PolicyForm extends Component
         }
 
         if (!empty($calc['errors'])) {
-            $this->restrictionErrors = ['Исправьте ошибки расчёта'];
+            $this->restrictionErrors = array_values($calc['errors']);
             return null;
         }
 
-        // Андеррайтинг
+        // Underwriting
         $uwTriggered = $this->checkUnderwriting($product);
         $needsApproval = collect($uwTriggered)->where('action', 'approval');
 
@@ -259,7 +263,7 @@ class PolicyForm extends Component
             return redirect()->route('policies.index');
         }
 
-        // Выпуск
+        // Issue
         $policy = $this->persist('issued', $calc);
 
         if ($product->numerator) {
@@ -271,20 +275,16 @@ class PolicyForm extends Component
             $policy->save();
         }
 
-        // Генерируем документы
         try {
             app(\App\Services\PolicyDocumentService::class)->issue($policy);
         } catch (\Throwable $e) {
-            // Не блокируем выпуск если документ не сгенерился
+            // Don't block issue if document generation fails
         }
 
         session()->flash('ok', 'Полис выпущен: ' . ($policy->number ?? '#' . $policy->id));
         return redirect()->route('policies.index');
     }
 
-    /**
-     * Сохранение полиса в БД.
-     */
     private function persist(string $status, ?array $calc = null): Policy
     {
         $product = $this->getProduct();
@@ -332,6 +332,30 @@ class PolicyForm extends Component
             $this->policyholder_email = $pol->policyholder_email ?? '';
             $this->policyholder_phone = $pol->policyholder_phone ?? '';
         }
+
+        // Trigger calculation on mount
+        if ($this->product_id) {
+            $this->initDataDefaults();
+            $this->calculate();
+        }
+    }
+
+    // DaData address suggestions
+    public function updatedDataPropertyAddress(string $value): void
+    {
+        $this->addressQuery = $value;
+        if (mb_strlen($value) < 3) {
+            $this->addressSuggestions = [];
+            return;
+        }
+        $this->addressSuggestions = app(DadataService::class)->suggestAddress($value);
+    }
+
+    public function selectAddress(array $suggestion): void
+    {
+        $fullAddress = $suggestion['value'] ?? '';
+        $this->data['property_address'] = $fullAddress;
+        $this->addressSuggestions = [];
     }
 
     public function render()
@@ -344,8 +368,11 @@ class PolicyForm extends Component
             'coverages' => $product ? $product->coverages : collect(),
             'fieldGroups' => $product ? $product->fieldGroups : collect(),
             'fields' => $product ? $product->fields : collect(),
+            'rows' => $product ? ($product->config_json['rows'] ?? []) : [],
             'agreements' => $product ? $product->agreements : collect(),
             'declarations' => $product ? $product->declarations()->where('is_active', true)->get() : collect(),
+            'banks' => Bank::where('is_active', true)->orderBy('name')->get(),
+            'intermediaries' => \App\Models\Intermediary::where('is_active', true)->orderBy('name')->get(),
         ]);
     }
 }

@@ -10,7 +10,7 @@
                 <span class="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-600">
                     {{ $fieldTypes[$field['type']] ?? $field['type'] }}
                 </span>
-                @if($field['required'])
+                @if(!empty($field['required']))
                     <span class="text-xs px-2 py-0.5 rounded bg-red-100 text-red-600">Обязательно</span>
                 @endif
                 @if(!empty($field['linked_to']))
@@ -21,7 +21,7 @@
                 <code>{{ $field['code'] }}</code>
                 @if(!empty($field['mask'])) · Маска: {{ $field['mask'] }}@endif
                 @if(!empty($field['regex'])) · Regex: {{ $field['regex'] }}@endif
-                @if(!empty($field['hint'])) · 💬 {{ $field['hint'] }}@endif
+                @if(!empty($field['hint'])) · {{ $field['hint'] }}@endif
             </div>
         </div>
     </div>

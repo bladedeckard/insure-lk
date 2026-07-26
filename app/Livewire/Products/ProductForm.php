@@ -13,6 +13,7 @@ use App\Models\ProductAgreement;
 use App\Models\ProductDeclaration;
 use App\Models\Numerator;
 use App\Models\Intermediary;
+use App\Models\ProductType;
 use App\Services\FormulaCalculator;
 use App\Services\ProductVersionService;
 use Livewire\Component;
@@ -36,9 +37,21 @@ class ProductForm extends Component
     public string $description = '';
     public string $currency = 'RUB';
     public array $selectedIntermediaries = [];
+    public ?int $product_type_id = null;
+
+    public function updatedProductTypeId(): void
+    {
+        if ($this->product_type_id) {
+            $type = ProductType::find($this->product_type_id);
+            if ($type) {
+                $this->product->calculator_class = $type->calculator_class;
+            }
+        }
+    }
 
     // ─── Tab 2: Покрытия и риски ──────────────────────────────────────────
     public array $coverages = [];
+    public array $coverageRows = []; // ряды для покрытий: [['id' => '...', 'cols' => 2], ...]
     public bool $showCoverageModal = false;
     public int $editingCoverageIndex = -1;
     public string $cov_name = '';
@@ -50,11 +63,24 @@ class ProductForm extends Component
     public string $cov_set_values = '';
     public bool $cov_required_for_calc = true;
     public string $cov_risks = '';
+    public string $cov_description = '';
 
-    // ─── Tab 3: Формула ───────────────────────────────────────────────────
+    // ─── Tab 3: Расчёт ───────────────────────────────────────────────────
     public string $formula_expression = '';
     public string $formula_test_result = '';
     public array $formula_test_values = [];
+
+    // Тарифы для ипотечного продукта
+    public float $tariff_life = 0.70;
+    public float $tariff_property_constructive = 0.27;
+    public float $tariff_property_no_constructive = 0.25;
+    public float $tariff_title = 0.43;
+    public float $reinsurance_apartment = 0.0355;
+    public float $reinsurance_wood = 0.068;
+    public float $reinsurance_stone = 0.0645;
+    public float $reinsurance_mixed = 0.0785;
+    public float $reinsurance_title = 0.08;
+    public float $max_load_percent = 60;
 
     // ─── Tab 4: Настройка заказа ──────────────────────────────────────────
     public ?int $numerator_id = null;
@@ -67,8 +93,13 @@ class ProductForm extends Component
     public array $fieldGroups = [];
     public array $fields = [];
     public array $sectionOrder = []; // порядок секций: ['group_id', ..., 'coverages', ...]
+    public string $dragAction = '';
     public bool $showFieldGroupModal = false;
     public bool $showFieldModal = false;
+    public bool $showRowModal = false;
+    public int $rowColsCount = 2;
+    public ?int $rowGroupIndex = null;
+    public ?string $rowSectionType = null; // 'group' or 'coverages'
     public int $editingFieldIndex = -1;
     
     // Field modal properties
@@ -114,6 +145,24 @@ class ProductForm extends Component
     public array $versionLogs = [];
     public array $versions = [];
 
+    // Drag-and-drop handler
+    public function updatedDragAction(): void
+    {
+        if (empty($this->dragAction)) return;
+        $data = json_decode($this->dragAction, true);
+        if (!$data) return;
+
+        match($data['action'] ?? '') {
+            'moveSection' => $this->moveSection($data['from'] ?? 0, $data['to'] ?? 0),
+            'moveField' => $this->moveField($data['from'] ?? 0, $data['to'] ?? 0, $data['fromGroup'] ?? 0, $data['toGroup'] ?? 0),
+            'moveFieldToGroup' => $this->moveFieldToGroup($data['from'] ?? 0, $data['toGroup'] ?? 0),
+            'dropToRow' => $this->dropToRow($data['from'] ?? 0, $data['toGroup'] ?? 0, $data['rowId'] ?? ''),
+            'dropCoverageToRow' => $this->dropCoverageToRow($data['from'] ?? 0, $data['rowId'] ?? ''),
+        };
+
+        $this->dragAction = '';
+    }
+
     protected function rules(): array
     {
         return [
@@ -151,6 +200,7 @@ class ProductForm extends Component
         $this->code = $p->code;
         $this->description = $p->description ?? '';
         $this->currency = $p->currency ?? 'RUB';
+        $this->product_type_id = $p->product_type_id;
         $this->selectedIntermediaries = $p->intermediaries->pluck('id')->map(fn($id) => (string)$id)->toArray();
 
         // Tab 2
@@ -166,10 +216,24 @@ class ProductForm extends Component
             'required_for_calc' => $c->required_for_calc,
             'sort_order' => $c->sort_order,
             'risks' => $c->risks ?? [],
+            'row_id' => $c->row_id ?? null,
+            'description' => $c->description ?? '',
         ])->toArray();
+        $this->coverageRows = $p->config_json['coverageRows'] ?? [];
 
-        // Tab 3
+        // Tab 3 — Formula + Tariffs
         $this->formula_expression = $p->formula_expression ?? '';
+        $tariffs = $p->config_json['tariffs'] ?? [];
+        $this->tariff_life = (float)($tariffs['life'] ?? 0.70);
+        $this->tariff_property_constructive = (float)($tariffs['property_constructive'] ?? 0.27);
+        $this->tariff_property_no_constructive = (float)($tariffs['property_no_constructive'] ?? 0.25);
+        $this->tariff_title = (float)($tariffs['title'] ?? 0.43);
+        $this->reinsurance_apartment = (float)($tariffs['reinsurance_apartment'] ?? 0.0355);
+        $this->reinsurance_wood = (float)($tariffs['reinsurance_wood'] ?? 0.068);
+        $this->reinsurance_stone = (float)($tariffs['reinsurance_stone'] ?? 0.0645);
+        $this->reinsurance_mixed = (float)($tariffs['reinsurance_mixed'] ?? 0.0785);
+        $this->reinsurance_title = (float)($tariffs['reinsurance_title'] ?? 0.08);
+        $this->max_load_percent = (float)($p->config_json['max_load_percent'] ?? 60);
 
         // Tab 4
         $this->numerator_id = $p->numerator_id;
@@ -192,12 +256,14 @@ class ProductForm extends Component
             ])->toArray();
 
         // Tab 5
+        $savedRows = $p->config_json['rows'] ?? [];
         $this->fieldGroups = $p->fieldGroups->map(fn($g) => [
             'id' => $g->id,
             'name' => $g->name,
             'code' => $g->code ?? '',
             'description' => $g->description ?? '',
             'sort_order' => $g->sort_order,
+            'rows' => $savedRows[(string)$g->id] ?? [],
         ])->toArray();
 
         $this->fields = $p->fields->map(fn($f) => [
@@ -215,6 +281,7 @@ class ProductForm extends Component
             'options' => $f->options ?? [],
             'visibility_condition' => $f->visibility_condition,
             'linked_to' => $f->linked_to ?? '',
+            'row_id' => $f->row_id ?? null,
             'sort_order' => $f->sort_order,
         ])->toArray();
 
@@ -325,6 +392,7 @@ class ProductForm extends Component
         $this->cov_set_values = implode(', ', $c['set_values'] ?? []);
         $this->cov_required_for_calc = $c['required_for_calc'];
         $this->cov_risks = implode(', ', $c['risks'] ?? []);
+        $this->cov_description = $c['description'] ?? '';
         $this->showCoverageModal = true;
     }
 
@@ -344,6 +412,7 @@ class ProductForm extends Component
             'required_for_calc' => $this->cov_required_for_calc,
             'sort_order' => $this->editingCoverageIndex >= 0 ? $this->coverages[$this->editingCoverageIndex]['sort_order'] : count($this->coverages),
             'risks' => $risks,
+            'description' => $this->cov_description,
         ];
 
         if ($this->editingCoverageIndex >= 0) {
@@ -545,6 +614,174 @@ class ProductForm extends Component
             $this->sectionOrder[$index] = $this->sectionOrder[$index + 1];
             $this->sectionOrder[$index + 1] = $tmp;
         }
+    }
+
+    // Drag-and-drop: move section to new position
+    public function moveSection(int $fromIndex, int $toIndex): void
+    {
+        if ($fromIndex === $toIndex) return;
+        if ($fromIndex < 0 || $fromIndex >= count($this->sectionOrder)) return;
+        if ($toIndex < 0 || $toIndex >= count($this->sectionOrder)) return;
+
+        $item = $this->sectionOrder[$fromIndex];
+        unset($this->sectionOrder[$fromIndex]);
+        $this->sectionOrder = array_values($this->sectionOrder);
+        array_splice($this->sectionOrder, $toIndex, 0, [$item]);
+    }
+
+    // Drag-and-drop: move field to new position
+    public function moveField(int $fromIndex, int $toIndex, int $fromGroupId, int $toGroupId): void
+    {
+        if ($fromIndex < 0 || $fromIndex >= count($this->fields)) return;
+        if ($toIndex < 0 || $toIndex > count($this->fields)) return;
+
+        $field = $this->fields[$fromIndex];
+        $field['group_id'] = $toGroupId;
+        unset($this->fields[$fromIndex]);
+        $this->fields = array_values($this->fields);
+
+        // Adjust toIndex if needed
+        if ($fromIndex < $toIndex) $toIndex--;
+        array_splice($this->fields, $toIndex, 0, [$field]);
+
+        // Update sort_order
+        foreach ($this->fields as $i => &$f) {
+            $f['sort_order'] = $i;
+        }
+    }
+
+    // Drag-and-drop: move field to a different group
+    public function moveFieldToGroup(int $fromIndex, int $toGroupId): void
+    {
+        if ($fromIndex < 0 || $fromIndex >= count($this->fields)) return;
+
+        $field = $this->fields[$fromIndex];
+        $field['group_id'] = $toGroupId;
+        unset($this->fields[$fromIndex]);
+        $this->fields = array_values($this->fields);
+        $this->fields[] = $field;
+
+        // Update sort_order
+        foreach ($this->fields as $i => &$f) {
+            $f['sort_order'] = $i;
+        }
+    }
+
+    // Drag-and-drop: move field to a row within a group
+    public function dropToRow(int $fromIndex, int $groupId, string $rowId): void
+    {
+        if ($fromIndex < 0 || $fromIndex >= count($this->fields)) return;
+
+        $field = $this->fields[$fromIndex];
+        $field['group_id'] = $groupId;
+        $field['row_id'] = $rowId;
+        unset($this->fields[$fromIndex]);
+        $this->fields = array_values($this->fields);
+        $this->fields[] = $field;
+
+        // Update sort_order
+        foreach ($this->fields as $i => &$f) {
+            $f['sort_order'] = $i;
+        }
+    }
+
+    // Drag-and-drop: move coverage to a row
+    public function dropCoverageToRow(int $fromIndex, string $rowId): void
+    {
+        if ($fromIndex < 0 || $fromIndex >= count($this->coverages)) return;
+
+        $coverage = $this->coverages[$fromIndex];
+        $coverage['row_id'] = $rowId;
+        unset($this->coverages[$fromIndex]);
+        $this->coverages = array_values($this->coverages);
+        $this->coverages[] = $coverage;
+
+        // Update sort_order
+        foreach ($this->coverages as $i => &$c) {
+            $c['sort_order'] = $i;
+        }
+    }
+
+    // Open row creation modal
+    public function openRowModal(int $groupIndex, string $sectionType = 'group'): void
+    {
+        $this->rowGroupIndex = $groupIndex;
+        $this->rowSectionType = $sectionType;
+        $this->rowColsCount = 2;
+        $this->showRowModal = true;
+    }
+
+    // Add a row to a group or coverages with specified columns
+    public function addRow(int $groupIndex, int $cols = 2, ?string $sectionType = null): void
+    {
+        $type = $sectionType ?? $this->rowSectionType ?? 'group';
+
+        if ($type === 'coverages') {
+            $rowId = 'row_' . uniqid();
+            $this->coverageRows[] = [
+                'id' => $rowId,
+                'cols' => max(1, min(6, $cols)),
+            ];
+            return;
+        }
+
+        if (!isset($this->fieldGroups[$groupIndex])) return;
+
+        if (!isset($this->fieldGroups[$groupIndex]['rows'])) {
+            $this->fieldGroups[$groupIndex]['rows'] = [];
+        }
+
+        $rowId = 'row_' . uniqid();
+        $this->fieldGroups[$groupIndex]['rows'][] = [
+            'id' => $rowId,
+            'cols' => max(1, min(6, $cols)),
+        ];
+    }
+
+    // Confirm row creation from modal
+    public function confirmAddRow(): void
+    {
+        if ($this->rowGroupIndex === null && $this->rowSectionType !== 'coverages') return;
+        $this->addRow($this->rowGroupIndex ?? 0, $this->rowColsCount, $this->rowSectionType);
+        $this->showRowModal = false;
+        $this->rowGroupIndex = null;
+        $this->rowSectionType = null;
+    }
+
+    // Remove a row from a group or coverages
+    public function removeRow(int $groupIndex, int $rowIndex): void
+    {
+        // Check if this is a coverage row
+        if (isset($this->coverageRows[$rowIndex])) {
+            $rowId = $this->coverageRows[$rowIndex]['id'] ?? null;
+            // Move coverages out of the row
+            if ($rowId) {
+                foreach ($this->coverages as &$cov) {
+                    if (($cov['row_id'] ?? null) === $rowId) {
+                        $cov['row_id'] = null;
+                    }
+                }
+            }
+            unset($this->coverageRows[$rowIndex]);
+            $this->coverageRows = array_values($this->coverageRows);
+            return;
+        }
+
+        if (!isset($this->fieldGroups[$groupIndex]['rows'][$rowIndex])) return;
+
+        $rowId = $this->fieldGroups[$groupIndex]['rows'][$rowIndex]['id'] ?? null;
+
+        // Move fields out of the row
+        if ($rowId) {
+            foreach ($this->fields as &$field) {
+                if (($field['row_id'] ?? null) === $rowId) {
+                    $field['row_id'] = null;
+                }
+            }
+        }
+
+        unset($this->fieldGroups[$groupIndex]['rows'][$rowIndex]);
+        $this->fieldGroups[$groupIndex]['rows'] = array_values($this->fieldGroups[$groupIndex]['rows']);
     }
 
     public function addField(): void
@@ -852,6 +1089,15 @@ class ProductForm extends Component
     {
         $this->validate();
         DB::transaction(fn() => $this->saveProduct('draft'));
+        // Перезагружаем данные после сохранения (новые ID групп/полей)
+        if ($this->productId) {
+            $this->product = Product::with([
+                'coverages', 'fieldGroups', 'fields', 'restrictions.conditions',
+                'documents', 'agreements', 'declarations', 'intermediaries',
+                'versions', 'logs'
+            ])->find($this->productId);
+            $this->loadFromProduct();
+        }
         session()->flash('success', 'Черновик сохранён');
     }
 
@@ -861,6 +1107,15 @@ class ProductForm extends Component
         DB::transaction(function() {
             $this->saveProduct('published');
         });
+        // Перезагружаем данные после сохранения (новые ID групп/полей)
+        if ($this->productId) {
+            $this->product = Product::with([
+                'coverages', 'fieldGroups', 'fields', 'restrictions.conditions',
+                'documents', 'agreements', 'declarations', 'intermediaries',
+                'versions', 'logs'
+            ])->find($this->productId);
+            $this->loadFromProduct();
+        }
         session()->flash('success', 'Продукт опубликован!');
     }
 
@@ -870,9 +1125,21 @@ class ProductForm extends Component
         
         $product = $this->productId ? Product::find($this->productId) : new Product();
         
-        // Сохраняем section_order в config_json
+        // Сохраняем section_order и тарифы в config_json
         $configJson = $product->config_json ?? [];
         $configJson['section_order'] = $this->sectionOrder;
+        $configJson['max_load_percent'] = $this->max_load_percent;
+        $configJson['tariffs'] = [
+            'life' => $this->tariff_life,
+            'property_constructive' => $this->tariff_property_constructive,
+            'property_no_constructive' => $this->tariff_property_no_constructive,
+            'title' => $this->tariff_title,
+            'reinsurance_apartment' => $this->reinsurance_apartment,
+            'reinsurance_wood' => $this->reinsurance_wood,
+            'reinsurance_stone' => $this->reinsurance_stone,
+            'reinsurance_mixed' => $this->reinsurance_mixed,
+            'reinsurance_title' => $this->reinsurance_title,
+        ];
 
         $product->fill([
             'name' => $this->name,
@@ -881,6 +1148,7 @@ class ProductForm extends Component
             'description' => $this->description ?: null,
             'currency' => $this->currency,
             'numerator_id' => $this->numerator_id ?: null,
+            'product_type_id' => $this->product_type_id,
             'calculator_class' => $product->calculator_class ?? 'App\\Services\\ProductCalculators\\FormulaBasedCalculator',
             'config_json' => $configJson,
             'formula_expression' => $this->formula_expression ?: null,
@@ -920,6 +1188,8 @@ class ProductForm extends Component
                 'required_for_calc' => $c['required_for_calc'] ?? true,
                 'sort_order' => $idx,
                 'risks' => $c['risks'] ?? [],
+                'row_id' => $c['row_id'] ?? null,
+                'description' => $c['description'] ?? null,
             ]);
         }
 
@@ -951,6 +1221,16 @@ class ProductForm extends Component
         }
         $this->sectionOrder = $updatedOrder;
         $configJson['section_order'] = $updatedOrder;
+        // Сохраняем ряды в config_json
+        $rowsData = [];
+        foreach ($this->fieldGroups as $idx => $g) {
+            $groupId = (string)($groupMap[$g['id']] ?? $g['id'] ?? $idx);
+            if (!empty($g['rows'])) {
+                $rowsData[$groupId] = $g['rows'];
+            }
+        }
+        $configJson['rows'] = $rowsData;
+        $configJson['coverageRows'] = $this->coverageRows;
         $product->update(['config_json' => $configJson]);
 
         // Поля
@@ -960,6 +1240,8 @@ class ProductForm extends Component
             if (!empty($f['group_id'])) {
                 $groupId = $groupMap[$f['group_id']] ?? $f['group_id'];
             }
+            // Обновляем row_id с новыми ID групп
+            $rowId = $f['row_id'] ?? null;
             $product->fields()->create([
                 'group_id' => $groupId,
                 'name' => $f['name'],
@@ -974,6 +1256,7 @@ class ProductForm extends Component
                 'options' => $f['options'] ?? [],
                 'visibility_condition' => $f['visibility_condition'] ?? null,
                 'linked_to' => $f['linked_to'] ?? null,
+                'row_id' => $rowId,
                 'sort_order' => $idx,
             ]);
         }
@@ -1079,13 +1362,15 @@ class ProductForm extends Component
             'fieldTypes' => ProductField::typeOptions(),
             'operators' => ProductRestrictionCondition::operatorOptions(),
             'currencies' => ['RUB' => 'Рубли', 'USD' => 'Доллары', 'EUR' => 'Евро', 'TRY' => 'Лиры'],
+            'productTypes' => ProductType::where('is_active', true)->orderBy('name')->get(),
+            'isMortgage' => $this->product_type_id && ProductType::find($this->product_type_id)?->code === 'mortgage',
             // [4] Передаём поля и покрытия для partials (datalist выбора)
             'allFields' => $this->fields,
             'allCoverages' => $this->coverages,
             'tabs' => [
                 'basic' => 'Основная информация',
                 'coverages' => 'Покрытия и риски',
-                'formula' => 'Формула',
+                'formula' => 'Расчёт',
                 'order' => 'Настройка заказа',
                 'fields' => 'Настройка полей',
                 'documents' => 'Документы',

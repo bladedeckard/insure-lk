@@ -2,144 +2,420 @@
 
 namespace App\Services\ProductCalculators;
 
+use App\Models\Bank;
 use App\Models\Product;
+use App\Models\Promocode;
+use App\Models\Intermediary;
 use Carbon\Carbon;
 
 class MortgageCalculator implements ProductCalculatorInterface
 {
-    // Упрощенная реализация по ТЗ
     public function __construct(protected Product $product) {}
 
     public function validate(array $input): array
     {
         $e = [];
-        if (($input['birth_date'] ?? null)) {
-            $age = Carbon::parse($input['birth_date'])->age;
-            if ($age < 18) $e['birth_date'] = 'Возраст не менее 18';
-            if ($age > 60) $e['birth_date'] = 'Возраст не более 60';
-        }
-        if (!empty($input['passport_series']) && !preg_match('/^\d{2}\s\d{2}$/', $input['passport_series'])) {
-            $e['passport_series'] = 'Формат ХХ ХХ';
+        $birthDate = $input['birthdate'] ?? $input['birth_date'] ?? null;
+        if ($birthDate) {
+            $age = Carbon::parse($birthDate)->age;
+            if ($age < 18) $e['birthdate'] = 'Возраст не менее 18 лет';
+            if ($age > 65) $e['birthdate'] = 'Возраст не более 65 лет';
         }
         return $e;
     }
 
-    private function ageSexCoeff(int $age, string $sex): float
+    /**
+     * Перевод кодовых значений на русский
+     */
+    private function translateCode(string $code, string $type = ''): string
     {
-        $map = [
-            [18,20,0.25,0.15],[21,25,0.28,0.165],[26,27,0.31,0.18],[28,29,0.32,0.19],
-            [30,31,0.345,0.2],[32,33,0.355,0.215],[34,35,0.37,0.23],[36,37,0.39,0.25],
-            [38,39,0.425,0.28],[40,41,0.47,0.33],[42,43,0.55,0.39],[44,46,0.63,0.505],
-            [47,49,0.72,0.605],[50,52,0.86,0.745],[53,55,0.98,0.88],[56,58,1.15,1.05],
-            [59,63,1.25,1.15],[64,65,1.35,1.25],
+        $translations = [
+            'apartment' => 'Квартира',
+            'house' => 'Дом',
+            'non_residential' => 'Нежилое',
+            'stone' => 'Каменный',
+            'mixed' => 'Смешанный',
+            'wood' => 'Деревянный',
+            'm' => 'Мужской',
+            'f' => 'Женский',
+            'male' => 'Мужской',
+            'female' => 'Женский',
+            'yes' => 'Да',
+            'no' => 'Нет',
         ];
-        foreach($map as [$a,$b,$m,$f]) if($age>=$a && $age<=$b) return $sex==='m' ? $m : $f;
+        return $translations[$code] ?? $code;
+    }
+
+    /**
+     * Базовый тариф НС по возрасту и полу (из ТЗ, диапазоны)
+     */
+    private function baseTariffLife(int $age, string $sex): float
+    {
+        // [min_age, max_age, мужчина, женщина]
+        $ranges = [
+            [18, 20, 0.18000, 0.18000],
+            [21, 25, 0.20700, 0.19350],
+            [26, 27, 0.23400, 0.20700],
+            [28, 29, 0.24300, 0.21600],
+            [30, 31, 0.26550, 0.22500],
+            [32, 33, 0.27450, 0.23850],
+            [34, 35, 0.28800, 0.25200],
+            [36, 37, 0.30600, 0.27000],
+            [38, 39, 0.33750, 0.29700],
+            [40, 41, 0.37800, 0.34200],
+            [42, 43, 0.45000, 0.39600],
+            [44, 46, 0.52200, 0.49950],
+            [47, 49, 0.60300, 0.58950],
+            [50, 52, 0.72900, 0.71550],
+            [53, 55, 0.83700, 0.83700],
+            [56, 58, 0.99000, 0.99000],
+            [59, 63, 1.08000, 1.08000],
+            [64, 65, 1.17000, 1.17000],
+        ];
+
+        foreach ($ranges as [$min, $max, $male, $female]) {
+            if ($age >= $min && $age <= $max) {
+                return $sex === 'm' ? $male : $female;
+            }
+        }
         return 1.0;
     }
 
-    private function reLifeRate(int $age, string $sex): float
+    /**
+     * Базовый тариф перестрахования жизнь (пол + возраст) из ТЗ
+     */
+    private function reinsuranceLifeRate(int $age, string $sex): float
     {
         $table = [
-18=>[0.041996,0.021648],19=>[0.048576,0.022992],20=>[0.056472,0.024336],
-21=>[0.063052,0.02568],22=>[0.067,0.02568],23=>[0.069632,0.027024],24=>[0.070948,0.027024],
-25=>[0.072264,0.028368],26=>[0.07358,0.028368],27=>[0.074896,0.031056],28=>[0.078844,0.0324],
-29=>[0.084108,0.035088],30=>[0.090688,0.036432],31=>[0.095952,0.037776],32=>[0.098584,0.037776],
-33=>[0.103848,0.040464],34=>[0.111744,0.044496],35=>[0.118324,0.047184],36=>[0.124904,0.049872],
-37=>[0.1328,0.053904],38=>[0.140696,0.057936],39=>[0.15254,0.061968],40=>[0.163068,0.066],
-41=>[0.173596,0.071376],42=>[0.184124,0.076752],43=>[0.195968,0.084816],44=>[0.210444,0.09288],
-45=>[0.22492,0.102288],46=>[0.240712,0.11304],47=>[0.260452,0.125136],48=>[0.281508,0.137232],
-49=>[0.2973,0.14664],50=>[0.315724,0.15336],51=>[0.339412,0.161424],52=>[0.367048,0.17352],
-53=>[0.397316,0.188304],54=>[0.427584,0.201744],55=>[0.456536,0.217872],56=>[0.486804,0.239376],
-57=>[0.517072,0.263568],58=>[0.549972,0.291792],59=>[0.585504,0.322704],60=>[0.622352,0.357648],
-61=>[0.660516,0.39528],62=>[0.701312,0.438288],63=>[0.74474,0.483984],64=>[0.7908,0.5364],
-65=>[0.840808,0.592848],
+            18 => [0.0434, 0.0238],
+            19 => [0.0504, 0.0252],
+            20 => [0.0588, 0.0266],
+            21 => [0.0658, 0.0280],
+            22 => [0.0700, 0.0280],
+            23 => [0.0728, 0.0294],
+            24 => [0.0742, 0.0294],
+            25 => [0.0756, 0.0308],
+            26 => [0.0770, 0.0308],
+            27 => [0.0784, 0.0336],
+            28 => [0.0826, 0.0350],
+            29 => [0.0882, 0.0378],
+            30 => [0.0952, 0.0392],
+            31 => [0.1008, 0.0406],
+            32 => [0.1036, 0.0406],
+            33 => [0.1092, 0.0434],
+            34 => [0.1176, 0.0476],
+            35 => [0.1246, 0.0504],
+            36 => [0.1316, 0.0532],
+            37 => [0.1400, 0.0574],
+            38 => [0.1484, 0.0616],
+            39 => [0.1610, 0.0658],
+            40 => [0.1722, 0.0700],
+            41 => [0.1834, 0.0756],
+            42 => [0.1946, 0.0812],
+            43 => [0.2072, 0.0896],
+            44 => [0.2226, 0.0980],
+            45 => [0.2380, 0.1078],
+            46 => [0.2548, 0.1190],
+            47 => [0.2758, 0.1316],
+            48 => [0.2982, 0.1442],
+            49 => [0.3150, 0.1540],
+            50 => [0.3346, 0.1610],
+            51 => [0.3598, 0.1694],
+            52 => [0.3892, 0.1820],
+            53 => [0.4214, 0.1974],
+            54 => [0.4536, 0.2114],
+            55 => [0.4844, 0.2282],
+            56 => [0.5166, 0.2506],
+            57 => [0.5488, 0.2758],
+            58 => [0.5838, 0.3052],
+            59 => [0.6216, 0.3374],
+            60 => [0.6608, 0.3738],
+            61 => [0.7014, 0.4130],
+            62 => [0.7448, 0.4578],
+            63 => [0.7910, 0.5054],
+            64 => [0.8400, 0.5600],
+            65 => [0.8932, 0.6188],
         ];
-        return $table[$age][$sex==='m'?0:1] ?? 0.1;
+        $age = max(18, min(65, $age));
+        $rates = $table[$age] ?? [0.1, 0.1];
+        return $sex === 'm' ? $rates[0] : $rates[1];
+    }
+
+    /**
+     * Базовый тариф перестрахования имущества из ТЗ
+     */
+    private function reinsurancePropertyRate(string $roomType, string $coverType): float
+    {
+        if ($roomType === 'apartment') {
+            return 0.00025; // 0.025%
+        }
+        // Дом — смотрим тип перекрытия
+        $rates = [
+            'wood' => 0.0007,  // 0.07%
+            'stone' => 0.00045, // 0.045%
+            'mixed' => 0.0005,  // 0.05%
+        ];
+        return $rates[$coverType] ?? 0.0005;
+    }
+
+    /**
+     * Коэффициент типа помещения
+     */
+    private function roomTypeCoeff(string $roomType): float
+    {
+        $map = ['house' => 2.2, 'apartment' => 1.0];
+        return $map[$roomType] ?? 1.0;
+    }
+
+    /**
+     * Коэффициент перекрытия
+     */
+    private function coverTypeCoeff(string $coverType): float
+    {
+        $map = ['stone' => 0.8, 'mixed' => 1.0, 'wood' => 1.2];
+        return $map[$coverType] ?? 1.0;
+    }
+
+    /**
+     * Коэффициент возраста объекта
+     */
+    private function houseAgeCoeff(int $age): float|false
+    {
+        if ($age >= 61) return false; // requires approval
+        if ($age <= 20) return 0.7;
+        if ($age <= 29) return 0.8;
+        if ($age <= 59) return 0.9;
+        return 1.0;
+    }
+
+    /**
+     * Коэффициент промокода (скидка)
+     */
+    private function getPromoCoeff(array $input): float
+    {
+        if (empty($input['promocode'])) return 1.0;
+        $promo = Promocode::where('code', strtoupper($input['promocode']))
+            ->where('product_id', $this->product->id)
+            ->active()
+            ->validNow()
+            ->first();
+        return $promo ? $promo->getDiscountCoefficient() : 1.0;
+    }
+
+    /**
+     * Коэффициент посредника = 1 - (КВ / 100)
+     */
+    private function getIntermediaryCoeff(array $input): float
+    {
+        // If KV is provided directly from the form, use it
+        if (!empty($input['kv_percent'])) {
+            $kv = (float)$input['kv_percent'];
+            if ($kv > 0) {
+                return 1 - ($kv / 100);
+            }
+        }
+
+        // Otherwise, try to look up from product_intermediaries
+        if (empty($input['intermediary_id'])) return 1.0;
+        $intermediary = Intermediary::find($input['intermediary_id']);
+        if (!$intermediary) return 1.0;
+        $pivot = \DB::table('product_intermediaries')
+            ->where('product_id', $this->product->id)
+            ->where('intermediary_id', $intermediary->id)
+            ->first();
+        $maxKv = $pivot->max_commission ?? 0;
+        if ($maxKv <= 0) return 1.0;
+        return 1 - ($maxKv / 100);
+    }
+
+    /**
+     * Коэффициент надбавки (0-100% → 1.00-2.00)
+     */
+    private function getMarkupCoeff(array $input): float
+    {
+        $markup = (float)($input['markup_percent'] ?? 0);
+        if ($markup <= 0) return 1.0;
+        return 1 + ($markup / 100);
     }
 
     public function calculate(array $input): array
     {
         $errors = $this->validate($input);
-        $osg = (float)($input['osg'] ?? 0);
-        $bank_coeff_osg = (float)($input['bank_osg_coeff'] ?? 1.0);
-        $sum_insured = $osg * $bank_coeff_osg;
 
-        $needs_approval = false;
-        $risks = $input['risks'] ?? [];
-        if (in_array('life', $risks) && $sum_insured > 10_000_000) $needs_approval = true;
-        if (in_array('property', $risks) && $sum_insured > 10_000_000) $needs_approval = true;
-        if (in_array('title', $risks)) $needs_approval = true;
+        $bankCode = $input['bank'] ?? null;
+        $bank = $bankCode ? Bank::where('code', $bankCode)->active()->first() : null;
 
-        $bank = $input['bank'] ?? 'sber';
-        // Упрощенные коэффициенты банков
-        $bank_load = ['sber'=>40,'vtb'=>50,'alfa'=>70][$bank] ?? 50;
-        // таблица нагрузка->поправочный
-        $bank_table = [40=>0.333,50=>0.4,70=>0.667];
-        $k_bank = $bank_table[$bank_load] ?? 0.4;
+        // Остаток суммы задолженности (ОСЗ) — пользователь вводит в поле "Страховая сумма"
+        $osg = (float)($input['insurance_sum'] ?? 0);
 
-        $promo_k = 1.0;
-        if (!empty($input['promocode'])) {
-            $promo_map = ['NEW10'=>0.9,'SPRING'=>0.95];
-            $promo_k = $promo_map[strtoupper($input['promocode'])] ?? 1.0;
+        // Коэффициент ОСЗ банка (требование банка к страховой сумме)
+        $osgCoeff = $bank ? (float)$bank->osg_coeff : 1.0;
+
+        // Страховая сумма = ОСЗ × Коэфф. ОСЗ
+        $insuranceSum = $osg * $osgCoeff;
+
+        // Определяем риски
+        $risks = [];
+        if (!empty($input['risk_life'])) $risks[] = 'life';
+        if (!empty($input['risk_property'])) $risks[] = 'property';
+        if (!empty($input['risk_title'])) $risks[] = 'title';
+
+        // Пороги согласования
+        $needsApproval = false;
+        if (in_array('life', $risks) && $insuranceSum > 10_000_000) $needsApproval = true;
+        if (in_array('property', $risks) && $insuranceSum > 10_000_000) $needsApproval = true;
+        if (in_array('title', $risks)) $needsApproval = true;
+
+        // Возраст объекта
+        $houseAge = (int)($input['house_age'] ?? 0);
+        if (in_array('property', $risks) && $houseAge >= 61) $needsApproval = true;
+
+        // Проверка титула
+        if (in_array('title', $risks)) {
+            if ($bank && $bank->title_disabled) {
+                $errors['title'] = 'Титульное страхование недоступно для выбранного банка';
+            }
+            if (!in_array('property', $risks)) {
+                $errors['title'] = 'Титульное страхование доступно только при покрытии "Имущество"';
+            }
         }
-        $intermediary_k = 0.9; // если есть посредник
-        if (empty($input['intermediary_id'])) $intermediary_k = 1.0;
 
-        $premium_total = 0;
+        // Коэффициенты
+        $promoK = $this->getPromoCoeff($input);
+        $intermediaryK = $this->getIntermediaryCoeff($input);
+        $markupK = $this->getMarkupCoeff($input);
+
+        // Взаимоисключающие промокод и надбавка
+        if ($promoK < 1.0 && $markupK > 1.0) {
+            $markupK = 1.0; // промокод отменяет надбавку
+        }
+
+        // Тарифы из конфига продукта
+        $productTariffs = $this->product->config_json['tariffs'] ?? [];
+        $baseTariffProperty = 0.0017; // 0.17% из ТЗ
+        $baseTariffTitle = 0.0033; // 0.33% из ТЗ
+        $reinsuranceTitle = 0.0008; // 0.08% из ТЗ
+
+        $premiumTotal = 0;
         $breakdown = [];
 
-        // Имущество
+        // === ИМУЩЕСТВО ===
         if (in_array('property', $risks)) {
-            $room_type = $input['room_type'] ?? 'apartment';
-            $k_type = ['house'=>2.2,'apartment'=>1,'non_res'=>1.2,'land'=>0.8][$room_type] ?? 1;
-            $cover = $input['cover_type'] ?? 'stone';
-            $k_cover = ['stone'=>0.8,'mixed'=>1,'wood'=>1.2][$cover] ?? 1;
-            $age_house = (int)($input['house_age'] ?? 10);
-            $k_year = $age_house < 20 ? 0.7 : ($age_house < 30 ? 0.8 : 0.9);
-            $base_tariff_prop = !empty($input['constructive']) ? 0.27 : 0.25;
-            $std_prop = $base_tariff_prop * $k_cover * $k_type * $k_year * $k_bank * $intermediary_k * $promo_k / $intermediary_k;
-            // перестрахование
-            $re_tariff = $room_type==='apartment' ? 0.0355 : ['wood'=>0.068,'stone'=>0.0645,'mixed'=>0.0785][$cover] ?? 0.0645;
-            $re_prop = $re_tariff * $promo_k / $intermediary_k;
-            $tariff_prop = max($std_prop, $re_prop);
-            $premium_prop = $sum_insured * $tariff_prop / 100;
-            $premium_total += $premium_prop;
-            $breakdown['property'] = round($premium_prop,2);
+            $roomType = $input['room_type'] ?? 'apartment';
+            $coverType = $input['cover_type'] ?? 'stone';
+
+            $kType = $this->roomTypeCoeff($roomType);
+            $kCover = $this->coverTypeCoeff($coverType);
+            $kYear = $this->houseAgeCoeff($houseAge);
+            if ($kYear === false) $kYear = 0.9;
+
+            // Коэффициент банка (имущество)
+            $kBankProperty = $bank ? (float)$bank->bank_coefficient_property : 1.0;
+
+            // Стандартный расчёт: тариф × коэффициенты
+            $stdProp = $baseTariffProperty * $kCover * $kType * $kYear * $kBankProperty;
+
+            // Перестрахование
+            $reProp = $this->reinsurancePropertyRate($roomType, $coverType);
+
+            // Максимум из стандартного и перестрахования
+            $tariffProp = max($stdProp, $reProp);
+
+            // Премия = сумма × тариф × промокод/надбавка / коэфф.посредника
+            $premiumProp = $insuranceSum * $tariffProp * $promoK * $markupK / $intermediaryK;
+
+            $premiumTotal += $premiumProp;
+            $breakdown['property'] = round($premiumProp, 2);
+            $breakdown['property_tariff'] = round($tariffProp * 100, 4);
+            $breakdown['property_eff_tariff'] = round($tariffProp * $promoK * $markupK / $intermediaryK * 100, 4);
+            $breakdown['property_std'] = round($stdProp * 100, 4);
+            $breakdown['property_re'] = round($reProp * 100, 4);
+            $breakdown['property_room'] = $this->translateCode($roomType);
+            $breakdown['property_cover'] = $this->translateCode($coverType);
+            $breakdown['property_house_age'] = $houseAge;
         }
 
-        // Жизнь
+        // === ЖИЗНЬ (НС) ===
         if (in_array('life', $risks)) {
-            $birth = $input['birth_date'] ?? null;
+            $birth = $input['birthdate'] ?? $input['birth_date'] ?? null;
             $age = $birth ? Carbon::parse($birth)->age : 35;
-            $sex = $input['sex'] ?? 'm';
-            $k_age_sex = $this->ageSexCoeff($age, $sex);
-            $k_sport = !empty($input['extreme_sport']) ? 1.5 : 1;
-            $k_job = !empty($input['danger_job']) ? 1.5 : 1;
-            $base_tariff_life = 0.70;
-            $std_life = $base_tariff_life * $k_age_sex * $k_sport * $k_job * $k_bank * $intermediary_k * $promo_k / $intermediary_k;
-            $re_life = $this->reLifeRate(min(max($age,18),65), $sex) * $promo_k / $intermediary_k;
-            $tariff_life = max($std_life, $re_life);
-            $premium_life = $sum_insured * $tariff_life / 100;
-            $premium_total += $premium_life;
-            $breakdown['life'] = round($premium_life,2);
+            $sexRaw = $input['sex'] ?? 'm';
+            $sex = in_array($sexRaw, ['m', 'male', 'Мужской']) ? 'm' : 'f';
+            $kSport = !empty($input['extreme_sport']) ? 1.5 : 1.0;
+            $kJob = ($input['dangerous_activity'] ?? 'no') === 'yes' ? 1.5 : 1.0;
+
+            // Базовый тариф НС (зависит от возраста и пола)
+            $baseLife = $this->baseTariffLife($age, $sex) / 100; // в процентах
+
+            // Базовый коэффициент банка
+            $kBankBase = $bank ? (float)$bank->base_coefficient : 1.0;
+
+            // Стандартный расчёт: тариф × спорт × деятельность × базовый коэф банка
+            $stdLife = $baseLife * $kSport * $kJob * $kBankBase;
+
+            // Перестрахование
+            $reLife = $this->reinsuranceLifeRate($age, $sex) / 100;
+
+            // Максимум из стандартного и перестрахования
+            $tariffLife = max($stdLife, $reLife);
+
+            // Премия = сумма × тариф × промокод/надбавка / коэфф.посредника
+            $premiumLife = $insuranceSum * $tariffLife * $promoK * $markupK / $intermediaryK;
+
+            $premiumTotal += $premiumLife;
+            $breakdown['life'] = round($premiumLife, 2);
+            $breakdown['life_tariff'] = round($tariffLife * 100, 4);
+            $breakdown['life_eff_tariff'] = round($tariffLife * $promoK * $markupK / $intermediaryK * 100, 4);
+            $breakdown['life_std'] = round($stdLife * 100, 4);
+            $breakdown['life_re'] = round($reLife * 100, 4);
+            $breakdown['life_bank_coeff'] = $kBankBase;
+            $breakdown['life_age'] = $age;
+            $breakdown['life_sex'] = $this->translateCode($sex);
+            $breakdown['life_base_tariff'] = round($baseLife * 100, 4);
+            $breakdown['life_sport'] = $kSport;
+            $breakdown['life_job'] = $kJob;
         }
 
-        // Титул
+        // === ТИТУЛ ===
         if (in_array('title', $risks)) {
-            $base_tariff_title = 0.43;
-            $std_title = $base_tariff_title * $intermediary_k * $promo_k / $intermediary_k;
-            $re_title = 0.08 * $promo_k / $intermediary_k;
-            $tariff_title = max($std_title, $re_title);
-            $premium_title = $sum_insured * $tariff_title / 100;
-            $premium_total += $premium_title;
-            $breakdown['title'] = round($premium_title,2);
+            // Базовый коэффициент банка
+            $kBankBase = $bank ? (float)$bank->base_coefficient : 1.0;
+
+            // Стандартный расчёт: тариф × базовый коэф банка
+            $stdTitle = $baseTariffTitle * $kBankBase;
+
+            // Перестрахование
+            $reTitle = $reinsuranceTitle;
+
+            // Максимум
+            $tariffTitle = max($stdTitle, $reTitle);
+
+            // Премия = сумма × тариф × промокод/надбавка / коэфф.посредника
+            $premiumTitle = $insuranceSum * $tariffTitle * $promoK * $markupK / $intermediaryK;
+
+            $premiumTotal += $premiumTitle;
+            $breakdown['title'] = round($premiumTitle, 2);
+            $breakdown['title_tariff'] = round($tariffTitle * 100, 4);
+            $breakdown['title_eff_tariff'] = round($tariffTitle * $promoK * $markupK / $intermediaryK * 100, 4);
+            $breakdown['title_std'] = round($stdTitle * 100, 4);
+            $breakdown['title_re'] = round($reTitle * 100, 4);
         }
 
         return [
-            'premium' => round($premium_total,2),
-            'breakdown' => $breakdown + ['sum_insured'=>$sum_insured,'needs_approval'=>$needs_approval],
+            'premium' => round($premiumTotal, 2),
+            'breakdown' => $breakdown + [
+                'osg' => $osg,
+                'osg_coeff' => $osgCoeff,
+                'insurance_sum' => $insuranceSum,
+                'risks' => $risks,
+                'bank_code' => $bankCode,
+                'bank_coefficient_property' => $bank ? (float)$bank->bank_coefficient_property : null,
+                'promo_coeff' => $promoK,
+                'markup_coeff' => $markupK,
+                'intermediary_coeff' => $intermediaryK,
+            ],
             'errors' => $errors,
-            'needs_approval' => $needs_approval,
+            'needs_approval' => $needsApproval,
         ];
     }
 }

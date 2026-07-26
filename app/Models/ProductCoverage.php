@@ -10,7 +10,7 @@ class ProductCoverage extends Model
     protected $fillable = [
         'product_id', 'name', 'code', 'type',
         'min_value', 'max_value', 'default_value', 'set_values',
-        'required_for_calc', 'sort_order', 'risks',
+        'required_for_calc', 'sort_order', 'risks', 'row_id', 'description',
     ];
 
     protected $casts = [

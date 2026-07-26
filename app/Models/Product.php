@@ -16,6 +16,7 @@ class Product extends Model
         'currency', 'is_active', 'status', 'current_version',
         'period_start_days', 'period_end_value', 'period_end_unit',
         'send_email', 'email_field', 'allow_edit_start_date', 'approval_emails',
+        'product_type_id',
     ];
 
     protected $casts = [
@@ -32,6 +33,11 @@ class Product extends Model
     public function numerator(): BelongsTo
     {
         return $this->belongsTo(Numerator::class);
+    }
+
+    public function productType(): BelongsTo
+    {
+        return $this->belongsTo(ProductType::class);
     }
 
     public function policies(): HasMany

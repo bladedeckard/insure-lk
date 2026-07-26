@@ -38,6 +38,19 @@
                 @endforeach
             </select>
         </div>
+
+        {{-- Тип продукта --}}
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Тип продукта</label>
+            <select wire:model="product_type_id"
+                class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                <option value="">— не выбран —</option>
+                @foreach ($productTypes as $type)
+                    <option value="{{ $type->id }}">{{ $type->name }}</option>
+                @endforeach
+            </select>
+            <p class="text-xs text-gray-400 mt-1">Определяет калькулятор и настройки расчёта</p>
+        </div>
     </div>
 
     {{-- Описание --}}

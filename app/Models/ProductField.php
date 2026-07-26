@@ -11,7 +11,7 @@ class ProductField extends Model
         'product_id', 'group_id', 'name', 'code', 'type',
         'required', 'description', 'hint', 'mask', 'regex', 'error_message',
         'options', 'validation_rules', 'visibility_condition',
-        'linked_to', 'sort_order',
+        'linked_to', 'sort_order', 'row_id',
     ];
 
     protected $casts = [
