@@ -18,7 +18,7 @@
 ></div>
 
 @php
-    $isStartDateField = ($field["code"] === 'start_date');
+    $isStartDateField = ($field['code'] === 'start_date');
     $dateMin = null;
     $dateDisabled = false;
 
@@ -30,17 +30,17 @@
     }
 @endphp
 
-<div class="{{ in_array($field["type"], ['textarea', 'address']) ? 'md:col-span-2' : '' }}">
-    @switch($field["type"])
+<div class="{{ in_array($field['type'], ['textarea', 'address']) ? 'md:col-span-2' : '' }}">
+    @switch($field['type'])
         @case('text')
             <div class="space-y-2">
                 <label class="block text-sm font-semibold text-slate-700">
-                    {{ $field["name"] }} @if($field["required"])<span class="text-red-500">*</span>@endif
+                    {{ $field['name'] }} @if($field['required'])<span class="text-red-500">*</span>@endif
                 </label>
                 <input type="text"
-                    wire:model.defer="data.{{ $field["code"] }}"
-                    @if(!empty($field["mask"])) data-mask="{{ $field["mask"] }}" @endif
-                    placeholder="{{ $field["hint"] ?? '' }}"
+                    wire:model.defer="data.{{ $field['code'] }}"
+                    @if(!empty($field['mask'])) data-mask="{{ $field['mask'] }}" @endif
+                    placeholder="{{ $field['hint'] ?? '' }}"
                     class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all">
             </div>
             @break
@@ -48,12 +48,12 @@
         @case('number')
             <div class="space-y-2">
                 <label class="block text-sm font-semibold text-slate-700">
-                    {{ $field["name"] }} @if($field["required"])<span class="text-red-500">*</span>@endif
+                    {{ $field['name'] }} @if($field['required'])<span class="text-red-500">*</span>@endif
                 </label>
                 <div class="relative">
                     <input type="number"
-                        wire:model.live.debounce.500ms="data.{{ $field["code"] }}"
-                        placeholder="{{ $field["hint"] ?? '0' }}"
+                        wire:model.live.debounce.500ms="data.{{ $field['code'] }}"
+                        placeholder="{{ $field['hint'] ?? '0' }}"
                         class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all">
                 </div>
             </div>
@@ -63,7 +63,7 @@
             @if($dateDisabled)
                 <div class="space-y-2">
                     <label class="block text-sm font-semibold text-slate-700">
-                        {{ $field["name"] }} @if($field["required"])<span class="text-red-500">*</span>@endif
+                        {{ $field['name'] }} @if($field['required'])<span class="text-red-500">*</span>@endif
                     </label>
                     <input type="text" disabled
                         value="{{ now()->addDays($product->period_start_days ?? 0)->format('d.m.Y') }}"
@@ -72,35 +72,35 @@
                 </div>
             @else
                 <x-custom-datepicker
-                    name="data.{{ $field["code"] }}"
-                    label="{{ $field["name"] }}"
-                    value="{{ $this->data[$field["code"]] ?? '' }}"
+                    name="data.{{ $field['code'] }}"
+                    label="{{ $field['name'] }}"
+                    value="{{ $this->data[$field['code']] ?? '' }}"
                     minDate="{{ $dateMin }}"
-                    :required="$field["required"]"
+                    :required="$field['required']"
                 />
             @endif
             @break
 
         @case('select')
             @php
-                $selectOptions = $field["options"] ?? [];
-                if(($field["code"] ?? '') === 'bank' && isset($banks) && $banks->isNotEmpty()) {
+                $selectOptions = $field['options'] ?? [];
+                if(($field['code'] ?? '') === 'bank' && isset($banks) && $banks->isNotEmpty()) {
                     $selectOptions = $banks->map(fn($b) => ['value' => $b->code, 'label' => $b->name])->toArray();
                 }
             @endphp
             <x-custom-select
-                name="data.{{ $field["code"] }}"
-                label="{{ $field["name"] }}"
+                name="data.{{ $field['code'] }}"
+                label="{{ $field['name'] }}"
                 :options="$selectOptions"
                 placeholder="— выберите —"
-                :required="$field["required"]"
+                :required="$field['required']"
             />
             @break
 
         @case('checkbox')
             <x-custom-checkbox
-                name="data.{{ $field["code"] }}"
-                label="{{ $field["name"] }}"
+                name="data.{{ $field['code'] }}"
+                label="{{ $field['name'] }}"
                 description="Включить в расчёт"
             />
             @break
@@ -108,7 +108,7 @@
         @case('phone')
             <div class="space-y-2">
                 <label class="block text-sm font-semibold text-slate-700">
-                    {{ $field["name"] }} @if($field["required"])<span class="text-red-500">*</span>@endif
+                    {{ $field['name'] }} @if($field['required'])<span class="text-red-500">*</span>@endif
                 </label>
                 <div class="relative">
                     <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -117,7 +117,7 @@
                         </svg>
                     </div>
                     <input type="tel"
-                        wire:model.defer="data.{{ $field["code"] }}"
+                        wire:model.defer="data.{{ $field['code'] }}"
                         placeholder="+7 (___) ___-__-__"
                         class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-12 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all">
                 </div>
@@ -127,7 +127,7 @@
         @case('email')
             <div class="space-y-2">
                 <label class="block text-sm font-semibold text-slate-700">
-                    {{ $field["name"] }} @if($field["required"])<span class="text-red-500">*</span>@endif
+                    {{ $field['name'] }} @if($field['required'])<span class="text-red-500">*</span>@endif
                 </label>
                 <div class="relative">
                     <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -136,7 +136,7 @@
                         </svg>
                     </div>
                     <input type="email"
-                        wire:model.defer="data.{{ $field["code"] }}"
+                        wire:model.defer="data.{{ $field['code'] }}"
                         placeholder="name@example.com"
                         class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-12 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all">
                 </div>
@@ -146,10 +146,10 @@
         @case('passport_series')
             <div class="space-y-2">
                 <label class="block text-sm font-semibold text-slate-700">
-                    {{ $field["name"] }} @if($field["required"])<span class="text-red-500">*</span>@endif
+                    {{ $field['name'] }} @if($field['required'])<span class="text-red-500">*</span>@endif
                 </label>
                 <input type="text"
-                    wire:model.defer="data.{{ $field["code"] }}"
+                    wire:model.defer="data.{{ $field['code'] }}"
                     maxlength="5"
                     placeholder="XX XX"
                     class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all">
@@ -160,10 +160,10 @@
         @case('passport_number')
             <div class="space-y-2">
                 <label class="block text-sm font-semibold text-slate-700">
-                    {{ $field["name"] }} @if($field["required"])<span class="text-red-500">*</span>@endif
+                    {{ $field['name'] }} @if($field['required'])<span class="text-red-500">*</span>@endif
                 </label>
                 <input type="text"
-                    wire:model.defer="data.{{ $field["code"] }}"
+                    wire:model.defer="data.{{ $field['code'] }}"
                     maxlength="6"
                     placeholder="XXXXXX"
                     class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all">
@@ -172,18 +172,18 @@
 
         @case('birthdate')
             <x-custom-datepicker
-                name="data.{{ $field["code"] }}"
-                label="{{ $field["name"] }}"
-                value="{{ $this->data[$field["code"]] ?? '' }}"
+                name="data.{{ $field['code'] }}"
+                label="{{ $field['name'] }}"
+                value="{{ $this->data[$field['code']] ?? '' }}"
                 maxDate="{{ now()->subYears(18)->format('Y-m-d') }}"
-                :required="$field["required"]"
+                :required="$field['required']"
             />
             @break
 
         @case('address')
             <div class="md:col-span-2 space-y-2">
                 <label class="block text-sm font-semibold text-slate-700">
-                    {{ $field["name"] }} @if($field["required"])<span class="text-red-500">*</span>@endif
+                    {{ $field['name'] }} @if($field['required'])<span class="text-red-500">*</span>@endif
                 </label>
                 <div class="relative" wire:ignore.self>
                     <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -193,12 +193,12 @@
                         </svg>
                     </div>
                     <input type="text"
-                        wire:model.live.debounce.300ms="data.{{ $field["code"] }}"
+                        wire:model.live.debounce.300ms="data.{{ $field['code'] }}"
                         placeholder="г. Москва, ул. ..., д. ..., кв. ..."
                         autocomplete="off"
                         class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-12 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all">
                 </div>
-                @if(!empty($addressSuggestions) && $field["code"] === 'property_address')
+                @if(!empty($addressSuggestions) && $field['code'] === 'property_address')
                     <div class="absolute z-10 w-full bg-white border border-slate-200 rounded-xl shadow-xl mt-1 max-h-60 overflow-y-auto">
                         @foreach($addressSuggestions as $suggestion)
                             <button type="button"
@@ -215,12 +215,12 @@
         @case('textarea')
             <div class="space-y-2 md:col-span-2">
                 <label class="block text-sm font-semibold text-slate-700">
-                    {{ $field["name"] }} @if($field["required"])<span class="text-red-500">*</span>@endif
+                    {{ $field['name'] }} @if($field['required'])<span class="text-red-500">*</span>@endif
                 </label>
                 <textarea
-                    wire:model.defer="data.{{ $field["code"] }}"
+                    wire:model.defer="data.{{ $field['code'] }}"
                     rows="3"
-                    placeholder="{{ $field["hint"] ?? '' }}"
+                    placeholder="{{ $field['hint'] ?? '' }}"
                     class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all resize-none"></textarea>
             </div>
             @break
@@ -228,7 +228,7 @@
         @case('file')
             <div class="space-y-2">
                 <label class="block text-sm font-semibold text-slate-700">
-                    {{ $field["name"] }} @if($field["required"])<span class="text-red-500">*</span>@endif
+                    {{ $field['name'] }} @if($field['required'])<span class="text-red-500">*</span>@endif
                 </label>
                 <input type="file"
                     class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-500">
@@ -240,13 +240,13 @@
                 <label class="flex items-center gap-2 cursor-pointer text-sm">
                     <input type="checkbox"
                         class="el-checkbox linked-field-toggle"
-                        data-source="{{ $field["linked_to"] }}"
-                        data-target="{{ $field["code"] }}">
-                    <span class="text-slate-700">Совпадает с «{{ $field["linked_to"] }}»</span>
+                        data-source="{{ $field['linked_to'] }}"
+                        data-target="{{ $field['code'] }}">
+                    <span class="text-slate-700">Совпадает с «{{ $field['linked_to'] }}»</span>
                 </label>
                 <input type="text"
-                    wire:model.defer="data.{{ $field["code"] }}"
-                    placeholder="{{ $field["hint"] ?? '' }}"
+                    wire:model.defer="data.{{ $field['code'] }}"
+                    placeholder="{{ $field['hint'] ?? '' }}"
                     class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all">
             </div>
             @break
@@ -254,16 +254,16 @@
         @default
             <div class="space-y-2">
                 <label class="block text-sm font-semibold text-slate-700">
-                    {{ $field["name"] }} @if($field["required"])<span class="text-red-500">*</span>@endif
+                    {{ $field['name'] }} @if($field['required'])<span class="text-red-500">*</span>@endif
                 </label>
                 <input type="text"
-                    wire:model.defer="data.{{ $field["code"] }}"
-                    placeholder="{{ $field["hint"] ?? '' }}"
+                    wire:model.defer="data.{{ $field['code'] }}"
+                    placeholder="{{ $field['hint'] ?? '' }}"
                     class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all">
             </div>
     @endswitch
 
-    @error('data.'.$field["code"])
+    @error('data.'.$field['code'])
         <p class="text-sm text-red-500 mt-1">{{ $message }}</p>
     @enderror
 </div>

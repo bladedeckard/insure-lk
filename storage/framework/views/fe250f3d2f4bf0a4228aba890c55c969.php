@@ -6,7 +6,7 @@
 <div
     <?php if($hasVisibility): ?>
         x-data="fieldVisibility('<?php echo e($field->code ?? $field['code']); ?>', <?php echo json_encode($fieldVis, JSON_UNESCAPED_UNICODE); ?>)"
-        x-show="visible"
+        
         x-transition:enter="transition ease-out duration-200"
         x-transition:enter-start="opacity-0"
         x-transition:enter-end="opacity-100"
@@ -18,7 +18,7 @@
 ></div>
 
 <?php
-    $isStartDateField = ($field["code"] === 'start_date');
+    $isStartDateField = ($field['code'] === 'start_date');
     $dateMin = null;
     $dateDisabled = false;
 
@@ -30,17 +30,17 @@
     }
 ?>
 
-<div class="<?php echo e(in_array($field["type"], ['textarea', 'address']) ? 'md:col-span-2' : ''); ?>">
-    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php switch($field["type"]):
+<div class="<?php echo e(in_array($field['type'], ['textarea', 'address']) ? 'md:col-span-2' : ''); ?>">
+    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php switch($field['type']):
         case ('text'): ?>
             <div class="space-y-2">
                 <label class="block text-sm font-semibold text-slate-700">
-                    <?php echo e($field["name"]); ?> <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($field["required"]): ?><span class="text-red-500">*</span><?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                    <?php echo e($field['name']); ?> <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($field['required']): ?><span class="text-red-500">*</span><?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                 </label>
                 <input type="text"
-                    wire:model.defer="data.<?php echo e($field["code"]); ?>"
-                    <?php if(!empty($field["mask"])): ?> data-mask="<?php echo e($field["mask"]); ?>" <?php endif; ?>
-                    placeholder="<?php echo e($field["hint"] ?? ''); ?>"
+                    wire:model.defer="data.<?php echo e($field['code']); ?>"
+                    <?php if(!empty($field['mask'])): ?> data-mask="<?php echo e($field['mask']); ?>" <?php endif; ?>
+                    placeholder="<?php echo e($field['hint'] ?? ''); ?>"
                     class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all">
             </div>
             <?php break; ?>
@@ -48,12 +48,12 @@
         <?php case ('number'): ?>
             <div class="space-y-2">
                 <label class="block text-sm font-semibold text-slate-700">
-                    <?php echo e($field["name"]); ?> <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($field["required"]): ?><span class="text-red-500">*</span><?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                    <?php echo e($field['name']); ?> <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($field['required']): ?><span class="text-red-500">*</span><?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                 </label>
                 <div class="relative">
                     <input type="number"
-                        wire:model.live.debounce.500ms="data.<?php echo e($field["code"]); ?>"
-                        placeholder="<?php echo e($field["hint"] ?? '0'); ?>"
+                        wire:model.live.debounce.500ms="data.<?php echo e($field['code']); ?>"
+                        placeholder="<?php echo e($field['hint'] ?? '0'); ?>"
                         class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all">
                 </div>
             </div>
@@ -63,7 +63,7 @@
             <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($dateDisabled): ?>
                 <div class="space-y-2">
                     <label class="block text-sm font-semibold text-slate-700">
-                        <?php echo e($field["name"]); ?> <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($field["required"]): ?><span class="text-red-500">*</span><?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                        <?php echo e($field['name']); ?> <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($field['required']): ?><span class="text-red-500">*</span><?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                     </label>
                     <input type="text" disabled
                         value="<?php echo e(now()->addDays($product->period_start_days ?? 0)->format('d.m.Y')); ?>"
@@ -71,44 +71,85 @@
                     <p class="text-xs text-orange-600">Дата устанавливается автоматически</p>
                 </div>
             <?php else: ?>
-                <x-custom-datepicker
-                    name="data.<?php echo e($field["code"]); ?>"
-                    label="<?php echo e($field["name"]); ?>"
-                    value="<?php echo e($this->data[$field["code"]] ?? ''); ?>"
-                    minDate="<?php echo e($dateMin); ?>"
-                    :required="$field["required"]"
-                />
+                <?php if (isset($component)) { $__componentOriginal32b89269fac272836e6f7f972e951b8a = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal32b89269fac272836e6f7f972e951b8a = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.custom-datepicker','data' => ['name' => 'data.'.e($field['code']).'','label' => ''.e($field['name']).'','value' => ''.e($this->data[$field['code']] ?? '').'','minDate' => ''.e($dateMin).'','required' => $field['required']]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('custom-datepicker'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['name' => 'data.'.e($field['code']).'','label' => ''.e($field['name']).'','value' => ''.e($this->data[$field['code']] ?? '').'','minDate' => ''.e($dateMin).'','required' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($field['required'])]); ?>
+<?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal32b89269fac272836e6f7f972e951b8a)): ?>
+<?php $attributes = $__attributesOriginal32b89269fac272836e6f7f972e951b8a; ?>
+<?php unset($__attributesOriginal32b89269fac272836e6f7f972e951b8a); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal32b89269fac272836e6f7f972e951b8a)): ?>
+<?php $component = $__componentOriginal32b89269fac272836e6f7f972e951b8a; ?>
+<?php unset($__componentOriginal32b89269fac272836e6f7f972e951b8a); ?>
+<?php endif; ?>
             <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
             <?php break; ?>
 
         <?php case ('select'): ?>
             <?php
-                $selectOptions = $field["options"] ?? [];
-                if(($field["code"] ?? '') === 'bank' && isset($banks) && $banks->isNotEmpty()) {
+                $selectOptions = $field['options'] ?? [];
+                if(($field['code'] ?? '') === 'bank' && isset($banks) && $banks->isNotEmpty()) {
                     $selectOptions = $banks->map(fn($b) => ['value' => $b->code, 'label' => $b->name])->toArray();
                 }
             ?>
-            <x-custom-select
-                name="data.<?php echo e($field["code"]); ?>"
-                label="<?php echo e($field["name"]); ?>"
-                :options="$selectOptions"
-                placeholder="— выберите —"
-                :required="$field["required"]"
-            />
+            <?php if (isset($component)) { $__componentOriginalc933793160c9c2655e76e4334d02687c = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginalc933793160c9c2655e76e4334d02687c = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.custom-select','data' => ['name' => 'data.'.e($field['code']).'','label' => ''.e($field['name']).'','options' => $selectOptions,'placeholder' => '— выберите —','required' => $field['required']]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('custom-select'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['name' => 'data.'.e($field['code']).'','label' => ''.e($field['name']).'','options' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($selectOptions),'placeholder' => '— выберите —','required' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($field['required'])]); ?>
+<?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginalc933793160c9c2655e76e4334d02687c)): ?>
+<?php $attributes = $__attributesOriginalc933793160c9c2655e76e4334d02687c; ?>
+<?php unset($__attributesOriginalc933793160c9c2655e76e4334d02687c); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginalc933793160c9c2655e76e4334d02687c)): ?>
+<?php $component = $__componentOriginalc933793160c9c2655e76e4334d02687c; ?>
+<?php unset($__componentOriginalc933793160c9c2655e76e4334d02687c); ?>
+<?php endif; ?>
             <?php break; ?>
 
         <?php case ('checkbox'): ?>
-            <x-custom-checkbox
-                name="data.<?php echo e($field["code"]); ?>"
-                label="<?php echo e($field["name"]); ?>"
-                description="Включить в расчёт"
-            />
+            <?php if (isset($component)) { $__componentOriginalbe1fe77e829be89986c64614ba1b3ef6 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginalbe1fe77e829be89986c64614ba1b3ef6 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.custom-checkbox','data' => ['name' => 'data.'.e($field['code']).'','label' => ''.e($field['name']).'','description' => 'Включить в расчёт']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('custom-checkbox'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['name' => 'data.'.e($field['code']).'','label' => ''.e($field['name']).'','description' => 'Включить в расчёт']); ?>
+<?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginalbe1fe77e829be89986c64614ba1b3ef6)): ?>
+<?php $attributes = $__attributesOriginalbe1fe77e829be89986c64614ba1b3ef6; ?>
+<?php unset($__attributesOriginalbe1fe77e829be89986c64614ba1b3ef6); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginalbe1fe77e829be89986c64614ba1b3ef6)): ?>
+<?php $component = $__componentOriginalbe1fe77e829be89986c64614ba1b3ef6; ?>
+<?php unset($__componentOriginalbe1fe77e829be89986c64614ba1b3ef6); ?>
+<?php endif; ?>
             <?php break; ?>
 
         <?php case ('phone'): ?>
             <div class="space-y-2">
                 <label class="block text-sm font-semibold text-slate-700">
-                    <?php echo e($field["name"]); ?> <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($field["required"]): ?><span class="text-red-500">*</span><?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                    <?php echo e($field['name']); ?> <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($field['required']): ?><span class="text-red-500">*</span><?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                 </label>
                 <div class="relative">
                     <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -117,7 +158,7 @@
                         </svg>
                     </div>
                     <input type="tel"
-                        wire:model.defer="data.<?php echo e($field["code"]); ?>"
+                        wire:model.defer="data.<?php echo e($field['code']); ?>"
                         placeholder="+7 (___) ___-__-__"
                         class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-12 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all">
                 </div>
@@ -127,7 +168,7 @@
         <?php case ('email'): ?>
             <div class="space-y-2">
                 <label class="block text-sm font-semibold text-slate-700">
-                    <?php echo e($field["name"]); ?> <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($field["required"]): ?><span class="text-red-500">*</span><?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                    <?php echo e($field['name']); ?> <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($field['required']): ?><span class="text-red-500">*</span><?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                 </label>
                 <div class="relative">
                     <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -136,7 +177,7 @@
                         </svg>
                     </div>
                     <input type="email"
-                        wire:model.defer="data.<?php echo e($field["code"]); ?>"
+                        wire:model.defer="data.<?php echo e($field['code']); ?>"
                         placeholder="name@example.com"
                         class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-12 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all">
                 </div>
@@ -146,10 +187,10 @@
         <?php case ('passport_series'): ?>
             <div class="space-y-2">
                 <label class="block text-sm font-semibold text-slate-700">
-                    <?php echo e($field["name"]); ?> <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($field["required"]): ?><span class="text-red-500">*</span><?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                    <?php echo e($field['name']); ?> <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($field['required']): ?><span class="text-red-500">*</span><?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                 </label>
                 <input type="text"
-                    wire:model.defer="data.<?php echo e($field["code"]); ?>"
+                    wire:model.defer="data.<?php echo e($field['code']); ?>"
                     maxlength="5"
                     placeholder="XX XX"
                     class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all">
@@ -160,10 +201,10 @@
         <?php case ('passport_number'): ?>
             <div class="space-y-2">
                 <label class="block text-sm font-semibold text-slate-700">
-                    <?php echo e($field["name"]); ?> <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($field["required"]): ?><span class="text-red-500">*</span><?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                    <?php echo e($field['name']); ?> <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($field['required']): ?><span class="text-red-500">*</span><?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                 </label>
                 <input type="text"
-                    wire:model.defer="data.<?php echo e($field["code"]); ?>"
+                    wire:model.defer="data.<?php echo e($field['code']); ?>"
                     maxlength="6"
                     placeholder="XXXXXX"
                     class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all">
@@ -171,19 +212,32 @@
             <?php break; ?>
 
         <?php case ('birthdate'): ?>
-            <x-custom-datepicker
-                name="data.<?php echo e($field["code"]); ?>"
-                label="<?php echo e($field["name"]); ?>"
-                value="<?php echo e($this->data[$field["code"]] ?? ''); ?>"
-                maxDate="<?php echo e(now()->subYears(18)->format('Y-m-d')); ?>"
-                :required="$field["required"]"
-            />
+            <?php if (isset($component)) { $__componentOriginal32b89269fac272836e6f7f972e951b8a = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal32b89269fac272836e6f7f972e951b8a = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.custom-datepicker','data' => ['name' => 'data.'.e($field['code']).'','label' => ''.e($field['name']).'','value' => ''.e($this->data[$field['code']] ?? '').'','maxDate' => ''.e(now()->subYears(18)->format('Y-m-d')).'','required' => $field['required']]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('custom-datepicker'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['name' => 'data.'.e($field['code']).'','label' => ''.e($field['name']).'','value' => ''.e($this->data[$field['code']] ?? '').'','maxDate' => ''.e(now()->subYears(18)->format('Y-m-d')).'','required' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($field['required'])]); ?>
+<?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal32b89269fac272836e6f7f972e951b8a)): ?>
+<?php $attributes = $__attributesOriginal32b89269fac272836e6f7f972e951b8a; ?>
+<?php unset($__attributesOriginal32b89269fac272836e6f7f972e951b8a); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal32b89269fac272836e6f7f972e951b8a)): ?>
+<?php $component = $__componentOriginal32b89269fac272836e6f7f972e951b8a; ?>
+<?php unset($__componentOriginal32b89269fac272836e6f7f972e951b8a); ?>
+<?php endif; ?>
             <?php break; ?>
 
         <?php case ('address'): ?>
             <div class="md:col-span-2 space-y-2">
                 <label class="block text-sm font-semibold text-slate-700">
-                    <?php echo e($field["name"]); ?> <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($field["required"]): ?><span class="text-red-500">*</span><?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                    <?php echo e($field['name']); ?> <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($field['required']): ?><span class="text-red-500">*</span><?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                 </label>
                 <div class="relative" wire:ignore.self>
                     <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -193,12 +247,12 @@
                         </svg>
                     </div>
                     <input type="text"
-                        wire:model.live.debounce.300ms="data.<?php echo e($field["code"]); ?>"
+                        wire:model.live.debounce.300ms="data.<?php echo e($field['code']); ?>"
                         placeholder="г. Москва, ул. ..., д. ..., кв. ..."
                         autocomplete="off"
                         class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-12 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all">
                 </div>
-                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(!empty($addressSuggestions) && $field["code"] === 'property_address'): ?>
+                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(!empty($addressSuggestions) && $field['code'] === 'property_address'): ?>
                     <div class="absolute z-10 w-full bg-white border border-slate-200 rounded-xl shadow-xl mt-1 max-h-60 overflow-y-auto">
                         <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__currentLoopData = $addressSuggestions; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $suggestion): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                             <button type="button"
@@ -215,12 +269,12 @@
         <?php case ('textarea'): ?>
             <div class="space-y-2 md:col-span-2">
                 <label class="block text-sm font-semibold text-slate-700">
-                    <?php echo e($field["name"]); ?> <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($field["required"]): ?><span class="text-red-500">*</span><?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                    <?php echo e($field['name']); ?> <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($field['required']): ?><span class="text-red-500">*</span><?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                 </label>
                 <textarea
-                    wire:model.defer="data.<?php echo e($field["code"]); ?>"
+                    wire:model.defer="data.<?php echo e($field['code']); ?>"
                     rows="3"
-                    placeholder="<?php echo e($field["hint"] ?? ''); ?>"
+                    placeholder="<?php echo e($field['hint'] ?? ''); ?>"
                     class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all resize-none"></textarea>
             </div>
             <?php break; ?>
@@ -228,7 +282,7 @@
         <?php case ('file'): ?>
             <div class="space-y-2">
                 <label class="block text-sm font-semibold text-slate-700">
-                    <?php echo e($field["name"]); ?> <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($field["required"]): ?><span class="text-red-500">*</span><?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                    <?php echo e($field['name']); ?> <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($field['required']): ?><span class="text-red-500">*</span><?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                 </label>
                 <input type="file"
                     class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-500">
@@ -240,13 +294,13 @@
                 <label class="flex items-center gap-2 cursor-pointer text-sm">
                     <input type="checkbox"
                         class="el-checkbox linked-field-toggle"
-                        data-source="<?php echo e($field["linked_to"]); ?>"
-                        data-target="<?php echo e($field["code"]); ?>">
-                    <span class="text-slate-700">Совпадает с «<?php echo e($field["linked_to"]); ?>»</span>
+                        data-source="<?php echo e($field['linked_to']); ?>"
+                        data-target="<?php echo e($field['code']); ?>">
+                    <span class="text-slate-700">Совпадает с «<?php echo e($field['linked_to']); ?>»</span>
                 </label>
                 <input type="text"
-                    wire:model.defer="data.<?php echo e($field["code"]); ?>"
-                    placeholder="<?php echo e($field["hint"] ?? ''); ?>"
+                    wire:model.defer="data.<?php echo e($field['code']); ?>"
+                    placeholder="<?php echo e($field['hint'] ?? ''); ?>"
                     class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all">
             </div>
             <?php break; ?>
@@ -254,16 +308,16 @@
         <?php default: ?>
             <div class="space-y-2">
                 <label class="block text-sm font-semibold text-slate-700">
-                    <?php echo e($field["name"]); ?> <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($field["required"]): ?><span class="text-red-500">*</span><?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                    <?php echo e($field['name']); ?> <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($field['required']): ?><span class="text-red-500">*</span><?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                 </label>
                 <input type="text"
-                    wire:model.defer="data.<?php echo e($field["code"]); ?>"
-                    placeholder="<?php echo e($field["hint"] ?? ''); ?>"
+                    wire:model.defer="data.<?php echo e($field['code']); ?>"
+                    placeholder="<?php echo e($field['hint'] ?? ''); ?>"
                     class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all">
             </div>
     <?php endswitch; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
-    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__errorArgs = ['data.'.$field["code"]];
+    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__errorArgs = ['data.'.$field['code']];
 $__bag = $errors->getBag($__errorArgs[1] ?? 'default');
 if ($__bag->has($__errorArgs[0])) :
 if (isset($message)) { $__messageOriginal = $message; }
