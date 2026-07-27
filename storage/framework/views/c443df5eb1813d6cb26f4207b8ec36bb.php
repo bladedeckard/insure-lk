@@ -1,4 +1,3 @@
-<?php echo $__env->make('livewire.policies.partials.alpine-visibility', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
 
 <div>
     

@@ -1,4 +1,3 @@
-@include('livewire.policies.partials.alpine-visibility')
 
 <div>
     {{-- Floating restriction errors --}}

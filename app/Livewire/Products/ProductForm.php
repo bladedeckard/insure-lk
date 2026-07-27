@@ -471,9 +471,17 @@ class ProductForm extends Component
         $this->productId = $product->id;
         $product->intermediaries()->sync($this->selectedIntermediaries);
 
-        // Coverages
+        // Coverages (с маппингом старых ID и индексов → новых)
         $product->coverages()->delete();
-        foreach($this->coverages as $idx=>$c) { $product->coverages()->create(['name'=>$c['name'],'code'=>$c['code']??null,'type'=>$c['type'],'min_value'=>$c['min_value'],'max_value'=>$c['max_value'],'default_value'=>$c['default_value'],'set_values'=>$c['set_values']??[],'required_for_calc'=>$c['required_for_calc']??true,'sort_order'=>$idx,'risks'=>$c['risks']??[],'row_id'=>$c['row_id']??null,'description'=>$c['description']??null]); }
+        $coverageMap = []; // old_id => new_id
+        $coverageIdxMap = []; // index => new_id
+        foreach($this->coverages as $idx => $c) {
+            $newCov = $product->coverages()->create(['name'=>$c['name'],'code'=>$c['code']??null,'type'=>$c['type'],'min_value'=>$c['min_value'],'max_value'=>$c['max_value'],'default_value'=>$c['default_value'],'set_values'=>$c['set_values']??[],'required_for_calc'=>$c['required_for_calc']??true,'sort_order'=>$idx,'risks'=>$c['risks']??[],'row_id'=>$c['row_id']??null,'description'=>$c['description']??null]);
+            if (!empty($c['id'])) {
+                $coverageMap[$c['id']] = $newCov->id;
+            }
+            $coverageIdxMap[$idx] = $newCov->id;
+        }
 
         // Groups
         $product->fieldGroups()->delete();
@@ -500,9 +508,9 @@ class ProductForm extends Component
             // Save coverage pivot (Уровень A)
             if (!empty($f['coverage_ids'])) {
                 foreach ($f['coverage_ids'] as $covId) {
-                    $realCovId = $covId;
-                    // Map old coverage ids to new ones
-                    $cov = $product->coverages()->find($covId);
+                    // Маппинг: старый id → новый, или индекс → новый
+                    $newCovId = $coverageMap[$covId] ?? $coverageIdxMap[$covId] ?? $covId;
+                    $cov = $product->coverages()->find($newCovId);
                     if ($cov) {
                         DB::table('product_field_coverages')->insert([
                             'product_field_id' => $field->id,
